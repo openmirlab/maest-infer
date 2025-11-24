@@ -22,8 +22,8 @@ uv pip install maest-infer
 
 For development:
 ```bash
-git clone https://github.com/palonso/maest.git
-cd maest
+git clone https://github.com/openmirlab/maest-infer.git
+cd maest-infer
 pip install -e .
 ```
 
@@ -35,7 +35,7 @@ pip install -e .
 import torch
 from maest_infer import get_maest
 
-# Load model (downloads pretrained weights automatically from Hugging Face)
+# Load model (downloads pretrained weights automatically)
 model = get_maest(arch="discogs-maest-30s-pw-129e-519l")
 model.eval()
 
@@ -63,7 +63,7 @@ activations, labels = model.predict_labels(audio)
 | `discogs-maest-30s-pw-73e-ts` | 30 sec | 400 | Teacher-student |
 | `discogs-maest-30s-pw-129e-519l` | 30 sec | 519 | Extended labels |
 
-All models are hosted on [Hugging Face](https://huggingface.co/mtg-upf) and downloaded automatically on first use.
+All model checkpoints are hosted on [GitHub Releases](https://github.com/palonso/MAEST/releases) and downloaded automatically on first use (cached in `~/.cache/torch/hub/checkpoints/`).
 
 ---
 
