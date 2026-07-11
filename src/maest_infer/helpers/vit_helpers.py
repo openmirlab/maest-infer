@@ -11,6 +11,10 @@ ADOPT campaign (feat/adopt-constitution) for the verification that timm's
 `load_pretrained` was genuinely load-bearing (it performs the checkpoint
 download + pos-embed adaptation + classifier-head resize), not dead code, and
 that this vendored copy reproduces its output bit-for-bit.
+
+Reads: maest_infer/data/checkpoints.json (checkpoint integrity registry);
+read by maest_infer.loading (build_model_with_cfg), maest_infer.layers
+(DropPath)
 """
 
 import hashlib
