@@ -59,9 +59,17 @@ packages = ["src/maest_infer"]
 include = [
     "src/maest_infer/**/*.py",
     "src/maest_infer/py.typed",
+    "src/maest_infer/data/*.json",
 ]
+
+[tool.pytest.ini_options]
+markers = [
+    "network: hits real network endpoints (deselected by default, run with -m network)",
+]
+addopts = "-m 'not network'"
 
 [tool.uv]
 dev-dependencies = [
     "pytest>=8.0",
+    "requests>=2.31",
 ]

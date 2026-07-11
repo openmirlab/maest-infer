@@ -13,17 +13,78 @@ download + pos-embed adaptation + classifier-head resize), not dead code, and
 that this vendored copy reproduces its output bit-for-bit.
 """
 
+import hashlib
+import json
 import logging
 import math
 import warnings
 from copy import deepcopy
+from pathlib import Path
+from urllib.parse import urlparse
 
 import torch
 from torch import nn
+from torch.hub import get_dir as _torch_hub_get_dir
 from torch.hub import load_state_dict_from_url
 from torch.nn.init import _calculate_fan_in_and_fan_out
 
 _logger = logging.getLogger("MAEST")
+
+_CHECKPOINTS_JSON = Path(__file__).resolve().parent.parent / "data" / "checkpoints.json"
+_checkpoint_registry_cache: dict | None = None
+
+
+def _load_checkpoint_registry() -> dict:
+    """Load data/checkpoints.json (url -> sha256/size/author), cached in-process."""
+    global _checkpoint_registry_cache
+    if _checkpoint_registry_cache is None:
+        try:
+            with open(_CHECKPOINTS_JSON, "r") as f:
+                data = json.load(f)
+            _checkpoint_registry_cache = {
+                entry["url"]: entry for entry in data.get("checkpoints", {}).values()
+            }
+        except FileNotFoundError:
+            _checkpoint_registry_cache = {}
+    return _checkpoint_registry_cache
+
+
+def _sha256_of_file(path: Path) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def _verify_checkpoint_integrity(url: str) -> None:
+    """Verify the torch.hub-cached file for `url` against checkpoints.json, if known.
+
+    Raises RuntimeError on a hash mismatch (corrupted download or a replaced
+    third-party mirror). Logs and returns quietly if no hash is on record --
+    this checks integrity, it does not require every URL to be pinned.
+    """
+    registry = _load_checkpoint_registry()
+    entry = registry.get(url)
+    if not entry or not entry.get("sha256"):
+        return
+
+    filename = Path(urlparse(url).path).name
+    cached_path = Path(_torch_hub_get_dir()) / "checkpoints" / filename
+    if not cached_path.is_file():
+        _logger.debug(f"Checkpoint integrity check skipped: {cached_path} not found on disk.")
+        return
+
+    actual = _sha256_of_file(cached_path)
+    expected = entry["sha256"]
+    if actual != expected:
+        raise RuntimeError(
+            f"Checkpoint integrity check FAILED for {url}: "
+            f"expected sha256={expected}, got sha256={actual}. "
+            f"The downloaded file at {cached_path} does not match the recorded checksum -- "
+            "it may be corrupted or the upstream mirror may have changed. Refusing to load it."
+        )
+    _logger.info(f"Checkpoint integrity verified for {filename} (sha256 matches checkpoints.json).")
 
 
 def overlay_external_default_cfg(default_cfg, kwargs):
@@ -215,6 +276,7 @@ def load_pretrained(
         progress=False,
         check_hash=False,
     )
+    _verify_checkpoint_integrity(pretrained_url)
 
     if filter_fn is not None:
         try:

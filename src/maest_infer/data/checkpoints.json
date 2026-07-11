@@ -1,0 +1,65 @@
+{
+  "_comment": "Third-party checkpoint provenance for MAEST inference. Every checkpoint is downloaded at runtime from the upstream URL below (never bundled in this package) and cached by torch.hub under ~/.cache/torch/hub/checkpoints/. sha256/size_bytes were computed 2026-07-11 against the file actually downloaded from each URL (ADOPT campaign, feat/adopt-constitution, P3). When a sha256 is known, vit_helpers.load_pretrained verifies the downloaded file against it and raises on mismatch -- catching a corrupted download or a compromised/replaced mirror before it silently loads into the model.",
+  "checkpoints": {
+    "passt_s_swa_p16_128_ap476": {
+      "url": "https://github.com/kkoutini/PaSST/releases/download/v0.0.1-audioset/passt-s-f128-p16-s10-ap.476-swa.pt",
+      "sha256": "302903fa8c4aee817b11dc982da0b29aaf8d11a3e722420476d0a12c9db70c2c",
+      "size_bytes": 344665734,
+      "original_author": "Khaled Koutini et al. (PaSST)"
+    },
+    "deit_base_distilled_patch16_384": {
+      "url": "https://dl.fbaipublicfiles.com/deit/deit_base_patch16_384-8de9b5d1.pth",
+      "sha256": "8de9b5d10c6b031785248aae8bcfa7be14237dbc383a55ad8d5d4d93292512da",
+      "size_bytes": 347486471,
+      "original_author": "Meta AI Research (DeiT, Touvron et al.)"
+    },
+    "discogs_maest_5s_pw_129e": {
+      "url": "https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-5s-pw-129e-swa.ckpt",
+      "sha256": "cc626ee9f0a816cadbef0a698f87424d72d7b5d84aef68983dac83bf2a03052a",
+      "size_bytes": 343668755,
+      "original_author": "Pablo Alonso-Jimenez / Music Technology Group, UPF (MAEST)"
+    },
+    "discogs_maest_10s_fs_129e": {
+      "url": "https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-10s-fs-129e-swa.ckpt",
+      "sha256": "62f369fbf60e93c1e93869fbac2bc60ecbcc4eb0fe99ab523f8218212490520c",
+      "size_bytes": 343764150,
+      "original_author": "Pablo Alonso-Jimenez / Music Technology Group, UPF (MAEST)"
+    },
+    "discogs_maest_10s_pw_129e": {
+      "url": "https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-10s-pw-129e-swa.ckpt",
+      "sha256": "9862dbc5945a62de01de0c2cccd5e499563210e307324bf6305f6932ad967f1f",
+      "size_bytes": 343764150,
+      "original_author": "Pablo Alonso-Jimenez / Music Technology Group, UPF (MAEST)"
+    },
+    "discogs_maest_10s_dw_75e": {
+      "url": "https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-10s-dw-75e-swa.ckpt",
+      "sha256": "1265f4cab278eb1da66a7946f4c870e2ca659076ed1aa1de718f55dc72766b68",
+      "size_bytes": 343763987,
+      "original_author": "Pablo Alonso-Jimenez / Music Technology Group, UPF (MAEST)"
+    },
+    "discogs_maest_20s_pw_129e": {
+      "url": "https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-20s-pw-129e-swa.ckpt",
+      "sha256": "1ea0880da17aed1b149323ae46c7dbbe6cf6c02c9d30a3f7931a962f7169353b",
+      "size_bytes": 343957686,
+      "original_author": "Pablo Alonso-Jimenez / Music Technology Group, UPF (MAEST)"
+    },
+    "discogs_maest_30s_pw_129e": {
+      "url": "https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-30s-pw-129e-swa.ckpt",
+      "sha256": "2e8ac8ebdc8ac4a3750583df23fd715605935286cbd9d2c4231dfeaa3736ad01",
+      "size_bytes": 344148150,
+      "original_author": "Pablo Alonso-Jimenez / Music Technology Group, UPF (MAEST)"
+    },
+    "discogs_maest_30s_pw_73e_ts": {
+      "url": "https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-30s-pw-73e-ts-swa.ckpt",
+      "sha256": "26b954652cd75b0951a67b7ab8f85b8b4c459f63a921a04f62829de85ea801fb",
+      "size_bytes": 344148476,
+      "original_author": "Pablo Alonso-Jimenez / Music Technology Group, UPF (MAEST)"
+    },
+    "discogs_maest_30s_pw_129e_519l": {
+      "url": "https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-30s-pw-129e-519l-swa.ckpt",
+      "sha256": "d6044e642b6ae295ee1164cc52b33ac663e247f03b4b100a0af1a5edfab18cdb",
+      "size_bytes": 344878270,
+      "original_author": "Pablo Alonso-Jimenez / Music Technology Group, UPF (MAEST)"
+    }
+  }
+}
