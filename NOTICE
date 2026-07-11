@@ -1,0 +1,62 @@
+maest-infer
+===========
+
+This package is an inference-only repackaging of MAEST (Music Audio
+Efficient Spectrogram Transformer), licensed under AGPL-3.0-only (see
+LICENSE).
+
+1. MAEST (original work)
+   - Repository: https://github.com/palonso/maest
+   - Copyright: (c) Pablo Alonso-Jimenez / Music Technology Group (MTG),
+     Universitat Pompeu Fabra
+   - Paper: Alonso-Jimenez et al., "Efficient Supervised Training of Audio
+     Transformers for Music Representation Learning," ISMIR 2023
+     (arXiv:2309.16418)
+   - License: AGPL-3.0-only
+   - Usage: This package's model architecture, checkpoint-loading logic, and
+     mel-spectrogram front end are a direct, inference-only port of this
+     work.
+
+2. This packaging (openmirlab modernization)
+   - Copyright: (c) 2026 openmirlab
+   - Description: Dependency-minimal repackaging for inference: removed the
+     timm dependency (vendored the one code path MAEST actually uses, see
+     CLAUDE.md), split the original single-file implementation into
+     documented modules, added checkpoint provenance and a weights-liveness
+     check, and added an automated test suite.
+
+Third-Party Model Weights
+==========================
+
+This package downloads pretrained checkpoints at runtime from third-party
+hosts; it never bundles them. See src/maest_infer/data/checkpoints.json for
+the full url/sha256/size/original_author table (10 checkpoints total,
+sha256-verified 2026-07-11):
+
+- 8 MAEST checkpoints: github.com/palonso/MAEST/releases (Pablo
+  Alonso-Jimenez / MTG-UPF)
+- 1 PaSST checkpoint: github.com/kkoutini/PaSST/releases (Khaled Koutini et
+  al.)
+- 1 DeiT checkpoint: dl.fbaipublicfiles.com (Meta AI Research)
+
+Downloaded weights may carry their own license terms independent of this
+package's AGPL-3.0-only license -- consult each upstream project before
+redistributing a downloaded checkpoint.
+
+Mel-Spectrogram Fidelity
+=========================
+
+MAEST's inference mel front end uses torchaudio (this package and upstream
+MAEST both do -- Essentia was only ever used by upstream to build the
+*training* dataset, never at inference). Empirically bounded (2026-07, 4
+clips including real music, discogs-maest-10s-pw-129e): final-embedding
+cosine similarity >=0.999 and 100% top-5 label agreement vs
+Essentia-derived features, though only ~74-97% of individual mel bins meet
+the stricter per-bin rtol/atol=1e-3 claim in helpers/melspectrogram.py's
+docstring (mismatch concentrates in the lowest mel bands and edge frames).
+
+Third-Party Dependencies
+=========================
+
+This package depends on PyTorch, torchaudio, and NumPy. See each project's
+own license for full terms.

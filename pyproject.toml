@@ -1,9 +1,12 @@
 [project]
 name = "maest-infer"
-version = "0.1.0"
+dynamic = ["version"]
 description = "MAEST inference-only package for music audio classification using efficient spectrogram transformers"
 authors = [
     { name = "Pablo Alonso", email = "pablo.alonso@upf.edu" }
+]
+maintainers = [
+    { name = "Package Maintainers" }
 ]
 license = { text = "AGPL-3.0-only" }
 readme = "README.md"
@@ -39,7 +42,6 @@ classifiers = [
 dependencies = [
     "torch>=2.0",
     "torchaudio>=2.0",
-    "timm>=0.9,<1.0",
     "numpy>=1.26",
 ]
 
@@ -53,6 +55,9 @@ Issues = "https://github.com/palonso/maest/issues"
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.hatch.version]
+path = "src/maest_infer/__about__.py"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/maest_infer"]
 
@@ -60,9 +65,17 @@ packages = ["src/maest_infer"]
 include = [
     "src/maest_infer/**/*.py",
     "src/maest_infer/py.typed",
+    "src/maest_infer/data/*.json",
 ]
+
+[tool.pytest.ini_options]
+markers = [
+    "network: hits real network endpoints (deselected by default, run with -m network)",
+]
+addopts = "-m 'not network'"
 
 [tool.uv]
 dev-dependencies = [
     "pytest>=8.0",
+    "requests>=2.31",
 ]

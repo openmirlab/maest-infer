@@ -1,12 +1,34 @@
 name: Publish to PyPI
 
+# Publishes to PyPI when a GitHub Release is created. Uses PyPI's trusted
+# publishing feature (must be configured on PyPI for the openmirlab org /
+# maest-infer repo). Per the org constitution's article-7 amendment
+# ("publishing gates on tests"), the `publish` job now depends on `test`
+# passing first -- no more publishing straight off `python -m build` with no
+# test step in between.
+
 on:
   release:
     types: [published]
   workflow_dispatch:
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: Install uv
+        run: pip install uv
+      - name: Install dependencies
+        run: uv sync
+      - name: Run tests (network tests deselected)
+        run: uv run --with pytest python -m pytest -q
+
   publish:
+    needs: [test]
     runs-on: ubuntu-latest
     permissions:
       id-token: write  # Required for trusted publishing
