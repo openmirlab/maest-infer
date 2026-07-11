@@ -22,6 +22,7 @@ import sys
 from pathlib import Path
 
 import numpy as np
+import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -39,6 +40,18 @@ def test_fixture_exists():
 
 def test_rerun_matches_baseline_bit_for_bit():
     expected = np.load(FIXTURE_PATH, allow_pickle=True)
+
+    # Bit-exact assertions are only valid on the recording environment:
+    # float kernels differ across torch builds/BLAS/hardware (see the
+    # demucs-infer/madmom-infer precedent). Elsewhere: explicit skip.
+    import json as _json
+    import torch as _torch
+    _meta = _json.loads(str(expected["_meta"]))
+    if _torch.__version__ != _meta.get("torch_version"):
+        pytest.skip(
+            f"bit-exact baseline recorded on torch {_meta.get('torch_version')}; "
+            f"current env has {_torch.__version__}"
+        )
 
     model = _load_model()
     clips = _make_clips()
