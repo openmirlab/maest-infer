@@ -63,7 +63,7 @@ activations, labels = model.predict_labels(audio)
 | `discogs-maest-30s-pw-73e-ts` | 30 sec | 400 | Teacher-student |
 | `discogs-maest-30s-pw-129e-519l` | 30 sec | 519 | Extended labels |
 
-All model checkpoints are hosted on [GitHub Releases](https://github.com/palonso/MAEST/releases) and downloaded automatically on first use (cached in `~/.cache/torch/hub/checkpoints/`).
+All model checkpoints are hosted on [GitHub Releases](https://github.com/palonso/MAEST/releases) and downloaded automatically on first use (cached in `~/.cache/torch/hub/checkpoints/`). Each download is verified against a recorded SHA-256 checksum; a corrupted or tampered file raises an error instead of silently loading.
 
 ---
 
