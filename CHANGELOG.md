@@ -5,6 +5,85 @@ All notable changes to maest-infer will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## CI matrix + dependency floor refresh (2026-07-12, branch `fix/ci-matrix`)
+
+Org audit found this repo tests only Python 3.10, and only inside
+`publish.yml`'s release-gating job -- there was no dedicated `test.yml`
+running on every push/PR, even though the classifiers claimed 3.10-3.12
+support. This change builds that CI matrix and refreshes the stale
+`torch`/`torchaudio`/`numpy` floors (org constitution article 3:
+"floors, not ceilings"). Dependabot: 0 open alerts (reconfirmed), no
+security fixes needed.
+
+### Added
+- **`.github/workflows/test.yml`**: a `test` job running the full `pytest`
+  suite across a Python 3.10/3.11/3.12/3.13 matrix via `uv` (all four
+  verified independently green with a genuinely fresh `uv sync` + `pytest -v`
+  run before being added to the matrix -- torchaudio's newest release lags
+  torch's by two minor versions, so 3.13 support hinged on whether a
+  compatible wheel pair existed there too; it did), plus a `build` job
+  (`needs: [test]`) doing the wheel-from-sdist build, a clean-venv install,
+  an import smoke test (`from maest_infer import get_maest, MAEST,
+  __version__`), and a check that the wheel contains `maest_infer/*.py`
+  (not `src/maest_infer/*.py` -- hatchling strips the prefix correctly,
+  confirmed by unzipping the built wheel) with no bundled checkpoint files
+  (org constitution article 7).
+- `Programming Language :: Python :: 3.13` classifier (3.13 verified green).
+
+### Changed
+- **`torch>=2.0` -> `>=2.11.0`, `torchaudio>=2.0` -> `>=2.11.0`** (not
+  torch's absolute latest, `2.13.0`): torchaudio's newest PyPI release is
+  `2.11.0`, two minor versions behind torch's `2.13.0`, and torchaudio's
+  own metadata pins an exact matching torch version through `2.10.0`
+  (`torchaudio==2.10.0` requires `torch==2.10.0`); `2.11.0` is the newest
+  release where both packages exist as a matched pair, so the floor tracks
+  that pairing rather than chasing torch's number alone. Note: `uv`'s
+  resolver, given only these floors with no upper bound, actually resolves
+  fresh installs to `torch==2.13.0` + `torchaudio==2.11.0` (torchaudio
+  2.11.0 dropped the exact-pin metadata, so nothing stops the resolver
+  reaching past it on the torch side) -- manually verified this specific
+  mismatched-version pair still imports and runs `torchaudio.transforms`
+  correctly, so it is not treated as a blocker, only documented here per
+  the "floors not ceilings" policy (no upper bound added).
+- **`numpy>=1.26` -> `>=2.2.6`**: the numpy/Python-version trap --
+  `numpy>=2.3` requires Python>=3.11 and `numpy>=2.5` requires
+  Python>=3.12, which would break this repo's Python>=3.10 floor if used
+  as the pyproject floor. `2.2.6` is the newest 2.x release still
+  compatible with Python 3.10; `uv`'s resolver still floats higher (up to
+  `2.5.1`) on the 3.11/3.12/3.13 legs of the lockfile's per-Python split,
+  same pattern as larsnet-infer's numpy floor fix.
+- **Accuracy check before committing to the torch/torchaudio bump**: reran
+  `tools/capture_baseline.py`'s exact clip synthesis + model forward pass
+  under torch `2.13.0+cu130`/torchaudio `2.11.0+cu130` and diffed every
+  array against the recorded fixture (captured on torch `2.9.1+cu128`).
+  Mel-spectrogram output is bit-identical (`max_abs_diff=0.0`); embeddings,
+  logits, and label probabilities differ only by ~1e-6 to ~6e-6 absolute
+  (float-kernel ULP noise across torch builds, not a real regression);
+  predicted labels match exactly. This is the expected, org-sanctioned
+  outcome of article 2's environment guard: `tests/test_baseline_regression.py`'s
+  bit-exact assertion now **skips** (rather than fails) once the installed
+  torch no longer matches the fixture's recorded `torch_version` --
+  visible as the test-count shift below.
+- `uv.lock` regenerated (48 packages resolved); the file itself stays
+  gitignored, as before, and is not part of this commit.
+
+### Test counts
+- Before (current committed floors, `torch>=2.0`/`torchaudio>=2.0`/`numpy>=1.26`,
+  fresh `uv sync`): **7 passed, 10 deselected** on all of Python
+  3.10/3.11/3.12/3.13 -- the resolver's chosen torch build (`2.9.1+cu128`)
+  happened to exactly match the recorded baseline fixture's
+  `torch_version`, so the bit-exact regression test ran (rather than
+  skipped) and passed. This differs from the prior audit's noted baseline
+  of "6 passed / 1 skipped / 10 deselected" purely because of which torch
+  build the resolver picked up at verification time -- not a behavior
+  change in this repo.
+- After (new floors, fresh `uv sync`, torch `2.13.0`/torchaudio `2.11.0`):
+  **6 passed, 1 skipped, 10 deselected** on all four Python versions -- the
+  1 skip is `test_rerun_matches_baseline_bit_for_bit`, self-skipping per
+  the environment guard above, not a failure.
+
 ## [0.2.0] - 2026-07-11
 
 ADOPT campaign (openmirlab modernization, `feat/adopt-constitution`) --

@@ -6,6 +6,10 @@ name: Publish to PyPI
 # ("publishing gates on tests"), the `publish` job now depends on `test`
 # passing first -- no more publishing straight off `python -m build` with no
 # test step in between.
+#
+# This job's own `test` step deliberately stays Python-3.10-only -- a
+# release-gate smoke check, not full matrix coverage. The real push/PR CI
+# matrix (Python 3.10-3.13) lives in `.github/workflows/test.yml`.
 
 on:
   release:

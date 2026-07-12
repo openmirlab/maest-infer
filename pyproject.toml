@@ -34,15 +34,25 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Multimedia :: Sound/Audio :: Analysis",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Typing :: Typed",
 ]
 
 dependencies = [
-    "torch>=2.0",
-    "torchaudio>=2.0",
-    "numpy>=1.26",
+    # torchaudio's newest PyPI release (2.11.0) lags torch's newest (2.13.0)
+    # by two minor versions and recent torchaudio releases pin an exact
+    # matching torch version (torchaudio 2.10.0 requires torch==2.10.0);
+    # 2.11.0 is the newest verified-compatible pair for both, so the floor
+    # tracks that pairing rather than torch's absolute latest.
+    "torch>=2.11.0",
+    "torchaudio>=2.11.0",
+    # numpy>=2.3 requires Python>=3.11 and numpy>=2.5 requires Python>=3.12;
+    # 2.2.6 is the newest 2.x release still compatible with this package's
+    # Python>=3.10 floor (uv's resolver still floats higher, up to 2.5.x, on
+    # the 3.11/3.12/3.13 legs of the split lockfile).
+    "numpy>=2.2.6",
 ]
 
 [project.urls]

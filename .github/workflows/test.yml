@@ -1,0 +1,93 @@
+name: Test
+
+# maest-infer's dedicated push/PR test gate (org constitution article 6/7):
+# previously the only test job lived inside publish.yml, gated on a GitHub
+# Release and pinned to Python 3.10 only, so ordinary pushes/PRs got zero CI
+# signal even though pyproject.toml's classifiers claim 3.10-3.13 support.
+#
+# Dependency install: this repo declares dev deps via the LEGACY
+# `[tool.uv] dev-dependencies` list (pytest, requests), not
+# `[project.optional-dependencies]` or a PEP-735 `[dependency-groups]` table.
+# `uv sync` picks up legacy dev-dependencies automatically -- no `--extra dev`
+# / `--group dev` needed here, unlike larsnet-infer/adtof-infer's
+# optional-dependencies-based `uv sync --extra dev`. Verified empirically: a
+# bare `uv sync --python <version>` installs pytest+requests on every matrix
+# leg. (publish.yml's `uv run --with pytest python -m pytest -q` invocation
+# adds pytest a second time via `--with` -- harmless belt-and-suspenders, not
+# load-bearing, since pytest is already present from `uv sync`.)
+#
+# Matrix: all four versions verified independently green (fresh `uv sync` +
+# full `pytest -v` run per version, no reused venv) before being added here.
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: Set up Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+
+      - name: Install dependencies (legacy [tool.uv] dev-dependencies, no --extra needed)
+        run: uv sync --python ${{ matrix.python-version }}
+
+      - name: Run tests (network-marked tests deselected; bit-exact regression self-skips off its recording torch build)
+        run: uv run --python ${{ matrix.python-version }} pytest -v
+
+  build:
+    name: Wheel-from-sdist smoke test
+    needs: [test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build package (wheel-from-sdist, org constitution article 7)
+        run: |
+          python -m pip install --upgrade pip build
+          python -m build
+
+      - name: Install wheel into a clean venv and touch public symbols
+        run: |
+          python -m venv /tmp/smoke-venv
+          /tmp/smoke-venv/bin/pip install --upgrade pip
+          /tmp/smoke-venv/bin/pip install dist/*.whl
+          /tmp/smoke-venv/bin/python -c "
+          from maest_infer import get_maest, MAEST, __version__
+          print('maest_infer', __version__, MAEST, 'imported OK')
+          "
+
+      - name: Confirm the wheel is non-empty and never bundles weights
+        run: |
+          if unzip -l dist/*.whl | grep -qiE '\.(pt|pth|ckpt)$'; then
+            echo "::error::Wheel contains a checkpoint file -- weights must never be bundled (org constitution article 4)"
+            exit 1
+          fi
+          if unzip -l dist/*.whl | grep -q '^.*src/maest_infer/'; then
+            echo "::error::Wheel retains the src/ prefix -- check [tool.hatch.build.targets.wheel] packages"
+            exit 1
+          fi
+          count=$(unzip -l dist/*.whl | grep -c 'maest_infer/.*\.py$')
+          if [ "$count" -lt 5 ]; then
+            echo "::error::Wheel looks empty ($count .py files) -- check [tool.hatch.build.targets.wheel] packages"
+            exit 1
+          fi
+          echo "Verified: wheel has $count .py files under maest_infer/ (no src/ prefix) and no bundled weights"
