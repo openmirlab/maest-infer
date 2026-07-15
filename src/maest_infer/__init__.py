@@ -9,5 +9,6 @@ Reads: maest_infer.maest (re-export shim), maest_infer.__about__ (version)
 
 from .__about__ import __version__
 from .maest import get_maest, MAEST
+from .clean_api import MAESTSession, get_maest_session
 
-__all__ = ["get_maest", "MAEST", "__version__"]
+__all__ = ["get_maest", "MAEST", "MAESTSession", "get_maest_session", "__version__"]

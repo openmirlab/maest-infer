@@ -76,6 +76,7 @@ include = [
     "src/maest_infer/**/*.py",
     "src/maest_infer/py.typed",
     "src/maest_infer/data/*.json",
+    "src/maest_infer/config/*.toml",
 ]
 
 [tool.pytest.ini_options]

@@ -135,6 +135,20 @@ logits, embeddings = model(audio)
 activations, labels = model.predict_labels(audio)
 ```
 
+### Explicit lifecycle
+
+Use `MAESTSession` when a caller needs deterministic model loading and release:
+
+```python
+from maest_infer import MAESTSession
+
+with MAESTSession(arch="discogs-maest-5s-pw-129e", device="cpu") as session:
+    logits, embeddings = session.infer(audio)
+```
+
+Checkpoint metadata is package-owned in `config/checkpoints.toml`; callers may
+override a checkpoint path, URL, or SHA-256 without changing the package.
+
 ## Available Models
 
 | Model | Input Length | Labels | Description |
