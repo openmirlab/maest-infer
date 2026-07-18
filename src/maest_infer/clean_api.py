@@ -31,7 +31,8 @@ class MAESTSession:
             if self.checkpoint is not None:
                 options["checkpoint"] = str(self.checkpoint)
             self._model = get_maest(self.arch, **options)
-            target = torch.device(self.device or ("cuda" if torch.cuda.is_available() else "cpu"))
+            device = None if self.device == "auto" else self.device
+            target = torch.device(device or ("cuda" if torch.cuda.is_available() else "cpu"))
             self._model.to(target).eval()
             self.device = target
             self._status = "ready"
