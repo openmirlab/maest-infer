@@ -53,6 +53,7 @@ dependencies = [
     # Python>=3.10 floor (uv's resolver still floats higher, up to 2.5.x, on
     # the 3.11/3.12/3.13 legs of the split lockfile).
     "numpy>=2.2.6",
+    "tomli>=2.0.1; python_version < '3.11'",
 ]
 
 [project.urls]
@@ -75,8 +76,10 @@ packages = ["src/maest_infer"]
 include = [
     "src/maest_infer/**/*.py",
     "src/maest_infer/py.typed",
-    "src/maest_infer/data/*.json",
     "src/maest_infer/config/*.toml",
+]
+exclude = [
+    "src/maest_infer/data/checkpoints.json",
 ]
 
 [tool.pytest.ini_options]

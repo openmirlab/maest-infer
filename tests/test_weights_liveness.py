@@ -6,7 +6,7 @@ so CI and local `pytest` runs never need network access. Run explicitly with
 checkpoint URL, e.g. before a release, to catch a dead upstream mirror before
 users do.
 
-Reads: tools.check_weights_liveness, maest_infer/data/checkpoints.json
+Reads: tools.check_weights_liveness, maest_infer/config/checkpoints.toml
 """
 
 import sys

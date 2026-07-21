@@ -148,6 +148,11 @@ with MAESTSession(arch="discogs-maest-5s-pw-129e", device="cpu") as session:
 
 Checkpoint metadata is package-owned in `config/checkpoints.toml`; callers may
 override a checkpoint path, URL, or SHA-256 without changing the package.
+`load()` is idempotent, `infer()` requires a ready session, `release()` allows
+reload while retaining cached upstream torch-hub files, and `close()` is
+terminal. Devices preserve legacy `None`/`auto` selection and accept explicit
+`cpu`, `cuda`, `cuda:N`, or `mps`; unavailable or invalid explicit requests
+raise before model construction.
 
 ## Available Models
 
@@ -194,7 +199,7 @@ bundled in the PyPI package. All model checkpoints are hosted on
 PaSST and one DeiT checkpoint from their respective upstream hosts — see
 [Acknowledgments](#acknowledgments)) and downloaded automatically on first
 use, cached in `~/.cache/torch/hub/checkpoints/`. Each download is verified
-against a recorded SHA-256 checksum (`src/maest_infer/data/checkpoints.json`);
+against a recorded SHA-256 checksum in packaged `config/checkpoints.toml`;
 a corrupted or tampered file raises an error instead of silently loading.
 This is a permanent constraint, not a temporary limitation — keeping
 multi-hundred-megabyte weights out of the repo and the wheel will not

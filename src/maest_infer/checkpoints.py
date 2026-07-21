@@ -1,6 +1,11 @@
-"""Package-owned checkpoint metadata for MAEST."""
+"""Package-owned checkpoint metadata and non-downloading cache resolution."""
 from pathlib import Path
-import tomllib
+from urllib.parse import urlparse
+
+try:
+    import tomllib
+except ModuleNotFoundError:  # pragma: no cover - Python 3.10 fallback
+    import tomli as tomllib
 
 
 def checkpoint_config_path() -> Path:
@@ -34,4 +39,30 @@ def checkpoint_metadata(model: str) -> dict:
         raise KeyError(f"unknown checkpoint model: {model}") from exc
 
 
-__all__ = ["checkpoint_config_path", "load_checkpoints", "checkpoint_metadata"]
+def checkpoint_artifact(model: str, kind: str = "checkpoint") -> dict:
+    """Return a model artifact from the packaged TOML catalog."""
+    metadata = checkpoint_metadata(model)
+    for artifact in metadata["artifacts"]:
+        if artifact.get("kind") == kind:
+            return dict(artifact)
+    raise KeyError(f"unknown {kind} artifact for checkpoint model: {model}")
+
+
+def checkpoint_for_url(url: str) -> dict | None:
+    """Find TOML metadata by URL without touching the network."""
+    for metadata in load_checkpoints()["models"].values():
+        for artifact in metadata["artifacts"]:
+            if artifact.get("url") == url:
+                return dict(artifact)
+    return None
+
+
+def torch_hub_checkpoint_path(url: str) -> Path:
+    """Return the exact torch.hub cache path for ``url`` without downloading."""
+    from torch.hub import get_dir
+
+    return Path(get_dir()) / "checkpoints" / Path(urlparse(url).path).name
+
+
+__all__ = ["checkpoint_config_path", "load_checkpoints", "checkpoint_metadata",
+           "checkpoint_artifact", "checkpoint_for_url", "torch_hub_checkpoint_path"]

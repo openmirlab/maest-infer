@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Add strict MAEST device validation for explicit `cpu`, `cuda`, `cuda:N`, and
+  `mps` requests while preserving legacy `None`/`auto` selection.
+- Make `MAESTSession.release()` reloadable and `close()` idempotent/terminal;
+  cache status now reports the same torch-hub or custom checkpoint path that
+  loading uses.
+- Make packaged `config/checkpoints.toml` the runtime URL/integrity source.
+  The legacy checkpoint JSON is source-only and excluded from wheels. Python
+  3.10 uses the conditional `tomli` fallback.
+
 ## CI matrix + dependency floor refresh (2026-07-12, branch `fix/ci-matrix`)
 
 Org audit found this repo tests only Python 3.10, and only inside

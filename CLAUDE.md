@@ -29,9 +29,10 @@ The original single 1410-line `maest.py` is now split by concern:
   `DropPath`, ...) plus a trimmed, URL-only vendored copy of
   `timm.models._builder.load_pretrained` (see "timm dependency" below).
 - `helpers/melspectrogram.py` -- the torchaudio mel-spectrogram front end.
-- `data/checkpoints.json` -- provenance (url/sha256/size/author) for all 10
-  third-party checkpoints, consulted by `vit_helpers.load_pretrained` for
-  integrity checking whenever a hash is on record.
+- `config/checkpoints.toml` -- runtime provenance (url/sha256/size/author)
+  for all 10 third-party checkpoints, consulted by `vit_helpers.load_pretrained`
+  for integrity checking whenever a hash is on record. The legacy JSON remains
+  source-only history and is excluded from wheels.
 
 ## File-top header convention
 

@@ -4,11 +4,14 @@ Holds the per-checkpoint `default_cfg` dicts (url, mean/std, input_size,
 classifier keys, ...) consumed by `loading.build_model_with_cfg`/
 `load_pretrained`, and `DISCOGS_VARIANTS`: the data-driven registry that
 replaced the 8 near-duplicate `discogs_maest_*` factory functions in the
-pre-split maest.py (see loading.py). Pure data -- no torch imports needed.
+pre-split maest.py (see loading.py). URLs come from the package TOML catalog;
+no torch import is needed.
 
-Reads: (leaf module, no local imports); read by maest_infer.loading,
+Reads: checkpoints; read by maest_infer.loading,
 maest_infer.model
 """
+
+from .checkpoints import checkpoint_artifact
 
 IMAGENET_DEFAULT_MEAN = (0.485, 0.456, 0.406)
 IMAGENET_DEFAULT_STD = (0.229, 0.224, 0.225)
@@ -37,7 +40,7 @@ def _cfg(url="", **kwargs):
 
 default_cfgs = {
     "passt_s_swa_p16_128_ap476": _cfg(
-        url="https://github.com/kkoutini/PaSST/releases/download/v0.0.1-audioset/passt-s-f128-p16-s10-ap.476-swa.pt",
+        url=checkpoint_artifact("passt_s_swa_p16_128_ap476")["url"],
         mean=IMAGENET_DEFAULT_MEAN,
         std=IMAGENET_DEFAULT_STD,
         input_size=(1, 128, 998),
@@ -46,14 +49,14 @@ default_cfgs = {
         num_classes=527,
     ),
     "deit_base_distilled_patch16_384": _cfg(
-        url="https://dl.fbaipublicfiles.com/deit/deit_base_patch16_384-8de9b5d1.pth",
+        url=checkpoint_artifact("deit_base_distilled_patch16_384")["url"],
         mean=IMAGENET_DEFAULT_MEAN,
         std=IMAGENET_DEFAULT_STD,
         input_size=(3, 384, 384),
         crop_pct=1.0,
     ),
     "discogs_maest_10s_fs_129e": _cfg(
-        url="https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-10s-fs-129e-swa.ckpt",
+        url=checkpoint_artifact("discogs_maest_10s_fs_129e")["url"],
         mean=DISCOGS_MEAN,
         std=DISCOGS_STD,
         input_size=(1, 96, 625),
@@ -62,7 +65,7 @@ default_cfgs = {
         num_classes=400,
     ),
     "discogs_maest_10s_dw_75e": _cfg(
-        url="https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-10s-dw-75e-swa.ckpt",
+        url=checkpoint_artifact("discogs_maest_10s_dw_75e")["url"],
         mean=DISCOGS_MEAN,
         std=DISCOGS_STD,
         input_size=(1, 96, 625),
@@ -71,7 +74,7 @@ default_cfgs = {
         num_classes=400,
     ),
     "discogs_maest_10s_pw_129e": _cfg(
-        url="https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-10s-pw-129e-swa.ckpt",
+        url=checkpoint_artifact("discogs_maest_10s_pw_129e")["url"],
         mean=DISCOGS_MEAN,
         std=DISCOGS_STD,
         input_size=(1, 96, 625),
@@ -80,7 +83,7 @@ default_cfgs = {
         num_classes=400,
     ),
     "discogs_maest_5s_pw_129e": _cfg(
-        url="https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-5s-pw-129e-swa.ckpt",
+        url=checkpoint_artifact("discogs_maest_5s_pw_129e")["url"],
         mean=DISCOGS_MEAN,
         std=DISCOGS_STD,
         input_size=(1, 96, 312),
@@ -89,7 +92,7 @@ default_cfgs = {
         num_classes=400,
     ),
     "discogs_maest_20s_pw_129e": _cfg(
-        url="https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-20s-pw-129e-swa.ckpt",
+        url=checkpoint_artifact("discogs_maest_20s_pw_129e")["url"],
         mean=DISCOGS_MEAN,
         std=DISCOGS_STD,
         input_size=(1, 128, 1250),
@@ -98,7 +101,7 @@ default_cfgs = {
         num_classes=400,
     ),
     "discogs_maest_30s_pw_129e": _cfg(
-        url="https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-30s-pw-129e-swa.ckpt",
+        url=checkpoint_artifact("discogs_maest_30s_pw_129e")["url"],
         mean=DISCOGS_MEAN,
         std=DISCOGS_STD,
         input_size=(1, 128, 1875),
@@ -107,7 +110,7 @@ default_cfgs = {
         num_classes=400,
     ),
     "discogs_maest_30s_pw_73e_ts": _cfg(
-        url="https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-30s-pw-73e-ts-swa.ckpt",
+        url=checkpoint_artifact("discogs_maest_30s_pw_73e_ts")["url"],
         mean=DISCOGS_MEAN,
         std=DISCOGS_STD,
         input_size=(1, 128, 1875),
@@ -116,7 +119,7 @@ default_cfgs = {
         num_classes=400,
     ),
     "discogs_maest_30s_pw_129e_519l": _cfg(
-        url="https://github.com/palonso/MAEST/releases/download/v0.0.0-beta/discogs-maest-30s-pw-129e-519l-swa.ckpt",
+        url=checkpoint_artifact("discogs_maest_30s_pw_129e_519l")["url"],
         mean=DISCOGS_MEAN,
         std=DISCOGS_STD,
         input_size=(1, 128, 1875),

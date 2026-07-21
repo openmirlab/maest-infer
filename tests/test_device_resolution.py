@@ -1,12 +1,7 @@
-"""Regression test for the "auto" device-string sentinel (clean_api.py:34).
+"""Regression tests for the automatic MAEST device sentinel.
 
-`device=None` (unset) already auto-detects via `self.device or (...)`; the
-literal string "auto" is truthy, so it used to bypass that fallback and go
-straight into `torch.device("auto")`, which raises `RuntimeError`. This
-exercises the real `MAESTSession.load()` path -- `get_maest` monkeypatched
-so no real checkpoint/network is needed -- and asserts "auto" resolves
-identically to `None`, while an explicit literal like "cpu" still passes
-through unchanged.
+``None`` and ``"auto"`` use the same legacy automatic selection. Explicit
+validation and CUDA-index coverage live in ``test_session_contract.py``.
 
 Reads: maest_infer.clean_api.MAESTSession, maest_infer.loading.get_maest
 """
