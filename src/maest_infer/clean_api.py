@@ -5,7 +5,13 @@ from .checkpoints import checkpoint_artifact, torch_hub_checkpoint_path
 
 
 def _resolve_device(device):
-    """Resolve MAEST's legacy automatic device choice and validate explicit requests."""
+    """Resolve MAEST's legacy automatic device choice and validate explicit requests.
+
+    ``mps`` is rejected unconditionally, regardless of actual MPS
+    availability: Apple MLX/MPS backends are permanently out of scope for
+    this org's projects (org canon openmirlab-dev 5e588e6, art. 4b).
+    ``"auto"`` never selects mps -- it is cuda-else-cpu only.
+    """
     import torch
 
     if device is None or device == "auto":
@@ -13,18 +19,20 @@ def _resolve_device(device):
     if device == "cpu":
         return torch.device("cpu")
     if not isinstance(device, str):
-        raise ValueError("device must be None, 'auto', 'cpu', 'cuda', 'cuda:N', or 'mps'")
+        raise ValueError("device must be None, 'auto', 'cpu', 'cuda', or 'cuda:N'")
     if device == "mps":
-        mps = getattr(torch.backends, "mps", None)
-        if mps is None or not mps.is_available():
-            raise RuntimeError("MPS was explicitly requested but is not available")
-        return torch.device("mps")
+        raise ValueError(
+            "device 'mps' is not supported. Apple MLX/MPS backends are "
+            "permanently out of scope for this project (org canon "
+            "openmirlab-dev 5e588e6, art. 4b). Supported devices: 'auto', "
+            "'cpu', 'cuda', or 'cuda:N'."
+        )
     if device == "cuda":
         if not torch.cuda.is_available():
             raise RuntimeError("CUDA was explicitly requested but is not available")
         return torch.device("cuda")
     if not device.startswith("cuda:"):
-        raise ValueError("device must be None, 'auto', 'cpu', 'cuda', 'cuda:N', or 'mps'")
+        raise ValueError("device must be None, 'auto', 'cpu', 'cuda', or 'cuda:N'")
     index_text = device[5:]
     if not index_text.isdigit():
         raise ValueError("CUDA device index must be a non-negative integer")

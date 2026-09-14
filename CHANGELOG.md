@@ -21,8 +21,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   code behavior change.
 
 ### Changed
-- Add strict MAEST device validation for explicit `cpu`, `cuda`, `cuda:N`, and
-  `mps` requests while preserving legacy `None`/`auto` selection.
+- Add strict MAEST device validation for explicit `cpu`, `cuda`, and
+  `cuda:N` requests while preserving legacy `None`/`auto` selection.
+
+### Removed
+- MPS device support (org decision 2026-09-14). Apple MLX/MPS backends are
+  permanently out of scope for this org's projects (org canon
+  openmirlab-dev 5e588e6, art. 4b); `device="mps"` now raises `ValueError`
+  unconditionally instead of resolving, and `"auto"` never selects mps.
+  MPS support was only ever present in this unreleased branch -- no
+  published version of maest-infer (0.1.0, 0.2.0 on PyPI) ever advertised
+  it, so this is not a breaking change for any released version.
 - Make `MAESTSession.release()` reloadable and `close()` idempotent/terminal;
   cache status now reports the same torch-hub or custom checkpoint path that
   loading uses.

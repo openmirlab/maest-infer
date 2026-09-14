@@ -93,6 +93,26 @@ def test_device_validation_auto_and_cuda_index(monkeypatch):
         _resolve_device("cuda:2")
 
 
+def test_resolve_device_rejects_mps_outright(monkeypatch):
+    """mps is out of scope (org canon art. 4b) regardless of availability."""
+    monkeypatch.setattr(torch.backends.mps, "is_available", lambda: True)
+    with pytest.raises(ValueError, match="mps"):
+        _resolve_device("mps")
+
+
+def test_resolve_device_rejects_mps_when_unavailable_too(monkeypatch):
+    monkeypatch.setattr(torch.backends.mps, "is_available", lambda: False)
+    with pytest.raises(ValueError, match="mps"):
+        _resolve_device("mps")
+
+
+def test_resolve_device_auto_never_resolves_to_mps_even_if_available(monkeypatch):
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
+    monkeypatch.setattr(torch.backends.mps, "is_available", lambda: True)
+    assert _resolve_device("auto") == torch.device("cpu")
+    assert _resolve_device(None) == torch.device("cpu")
+
+
 def test_cache_info_uses_torch_hub_resolver_for_default_and_custom_paths(monkeypatch, tmp_path):
     import maest_infer.clean_api as api
 

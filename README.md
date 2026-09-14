@@ -157,8 +157,10 @@ override a checkpoint path, URL, or SHA-256 without changing the package.
 `load()` is idempotent, `infer()` requires a ready session, `release()` allows
 reload while retaining cached upstream torch-hub files, and `close()` is
 terminal. Devices preserve legacy `None`/`auto` selection and accept explicit
-`cpu`, `cuda`, `cuda:N`, or `mps`; unavailable or invalid explicit requests
-raise before model construction.
+`cpu`, `cuda`, or `cuda:N`; unavailable or invalid explicit requests raise
+before model construction. `mps` is not supported -- Apple MLX/MPS backends
+are permanently out of scope for this org's projects (org canon
+openmirlab-dev 5e588e6, art. 4b).
 
 ## Available Models
 
