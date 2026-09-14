@@ -3,7 +3,7 @@ version = 1
 
 [models.passt_s_swa_p16_128_ap476]
 model = "passt_s_swa_p16_128_ap476"
-license = "See NOTICE"
+license = "Apache-2.0"
 provenance = "Khaled Koutini et al. (PaSST)"
 source_revision = "upstream release v0.0.0-beta"
 updated_at = "2026-07-15"
@@ -17,7 +17,7 @@ size = 344665734
 
 [models.deit_base_distilled_patch16_384]
 model = "deit_base_distilled_patch16_384"
-license = "See NOTICE"
+license = "Apache-2.0"
 provenance = "Meta AI Research (DeiT, Touvron et al.)"
 source_revision = "upstream release v0.0.0-beta"
 updated_at = "2026-07-15"
@@ -31,7 +31,7 @@ size = 347486471
 
 [models.discogs_maest_5s_pw_129e]
 model = "discogs_maest_5s_pw_129e"
-license = "See NOTICE"
+license = "CC-BY-NC-SA-4.0"
 provenance = "Pablo Alonso-Jimenez / Music Technology Group, UPF (MAEST)"
 source_revision = "upstream release v0.0.0-beta"
 updated_at = "2026-07-15"
@@ -45,7 +45,7 @@ size = 343668755
 
 [models.discogs_maest_10s_fs_129e]
 model = "discogs_maest_10s_fs_129e"
-license = "See NOTICE"
+license = "CC-BY-NC-SA-4.0"
 provenance = "Pablo Alonso-Jimenez / Music Technology Group, UPF (MAEST)"
 source_revision = "upstream release v0.0.0-beta"
 updated_at = "2026-07-15"
@@ -59,7 +59,7 @@ size = 343764150
 
 [models.discogs_maest_10s_pw_129e]
 model = "discogs_maest_10s_pw_129e"
-license = "See NOTICE"
+license = "CC-BY-NC-SA-4.0"
 provenance = "Pablo Alonso-Jimenez / Music Technology Group, UPF (MAEST)"
 source_revision = "upstream release v0.0.0-beta"
 updated_at = "2026-07-15"
@@ -73,7 +73,7 @@ size = 343764150
 
 [models.discogs_maest_10s_dw_75e]
 model = "discogs_maest_10s_dw_75e"
-license = "See NOTICE"
+license = "CC-BY-NC-SA-4.0"
 provenance = "Pablo Alonso-Jimenez / Music Technology Group, UPF (MAEST)"
 source_revision = "upstream release v0.0.0-beta"
 updated_at = "2026-07-15"
@@ -87,7 +87,7 @@ size = 343763987
 
 [models.discogs_maest_20s_pw_129e]
 model = "discogs_maest_20s_pw_129e"
-license = "See NOTICE"
+license = "CC-BY-NC-SA-4.0"
 provenance = "Pablo Alonso-Jimenez / Music Technology Group, UPF (MAEST)"
 source_revision = "upstream release v0.0.0-beta"
 updated_at = "2026-07-15"
@@ -101,7 +101,7 @@ size = 343957686
 
 [models.discogs_maest_30s_pw_129e]
 model = "discogs_maest_30s_pw_129e"
-license = "See NOTICE"
+license = "CC-BY-NC-SA-4.0"
 provenance = "Pablo Alonso-Jimenez / Music Technology Group, UPF (MAEST)"
 source_revision = "upstream release v0.0.0-beta"
 updated_at = "2026-07-15"
@@ -115,7 +115,7 @@ size = 344148150
 
 [models.discogs_maest_30s_pw_73e_ts]
 model = "discogs_maest_30s_pw_73e_ts"
-license = "See NOTICE"
+license = "CC-BY-NC-SA-4.0"
 provenance = "Pablo Alonso-Jimenez / Music Technology Group, UPF (MAEST)"
 source_revision = "upstream release v0.0.0-beta"
 updated_at = "2026-07-15"
@@ -129,7 +129,7 @@ size = 344148476
 
 [models.discogs_maest_30s_pw_129e_519l]
 model = "discogs_maest_30s_pw_129e_519l"
-license = "See NOTICE"
+license = "CC-BY-NC-SA-4.0"
 provenance = "Pablo Alonso-Jimenez / Music Technology Group, UPF (MAEST)"
 source_revision = "upstream release v0.0.0-beta"
 updated_at = "2026-07-15"

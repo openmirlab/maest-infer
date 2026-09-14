@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Docs
+- Document the AGPL-3.0-only license constraint precisely, including what
+  §13 ("Remote Network Interaction") implies for running this package
+  inside a network-facing service such as a phonon provider (README.md,
+  CLAUDE.md). Confirm and record sourced facts: upstream code license
+  (`gh api repos/palonso/maest/license` → AGPL-3.0), MAEST weights license
+  (CC BY-NC-SA 4.0, per https://essentia.upf.edu/models.html), and the
+  PaSST/DeiT backbone-init checkpoints' license (Apache-2.0, from their own
+  upstream repos). Fill in the previously-placeholder `license = "See
+  NOTICE"` fields in `config/checkpoints.toml` (and mirror in the legacy
+  `data/checkpoints.json`) with these verified values. No relicensing; no
+  code behavior change.
+
 ### Changed
 - Add strict MAEST device validation for explicit `cpu`, `cuda`, `cuda:N`, and
   `mps` requests while preserving legacy `None`/`auto` selection.

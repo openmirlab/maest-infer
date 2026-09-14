@@ -89,6 +89,12 @@ If you use MAEST in your research, **please cite the original paper**:
   only; see [Mel-spectrogram fidelity](#mel-spectrogram-fidelity) below for
   how that compares to upstream's Essentia-based training pipeline.
 
+**License constraint on hosting this package (read before deploying it
+behind any network service):** maest-infer is a derivative of AGPL-3.0-only
+upstream code (see [License](#license) below) and the pretrained weights are
+CC BY-NC-SA 4.0, non-commercial only. Both constraints follow the package
+wherever it runs, including inside a hosted API/provider.
+
 **Present in code but not fully supported:**
 
 - The `passt_deit_bd_p16_384` architecture string in `get_maest`'s dispatch
@@ -224,7 +230,49 @@ the file-header convention, and what was deliberately left untouched.
 
 ## License
 
-This package is licensed under [AGPL-3.0-only](LICENSE), following the original MAEST license. See [NOTICE](NOTICE) for the full third-party attribution and weights-licensing breakdown.
+This package is licensed under [AGPL-3.0-only](LICENSE), following the
+original MAEST license. It is a derivative work of
+[palonso/maest](https://github.com/palonso/maest) (verified
+`AGPL-3.0` via `gh api repos/palonso/maest/license`, 2026-09-14) — the model
+architecture, checkpoint-loading logic, and mel front end are a direct,
+inference-only port of that code, so this package cannot be relicensed away
+from AGPL-3.0-only. See [NOTICE](NOTICE) for the full third-party
+attribution and weights-licensing breakdown.
+
+**Weights license**: the 8 MAEST checkpoints are licensed **CC BY-NC-SA
+4.0**, non-commercial and share-alike — confirmed directly on MTG's own
+model page ("All the models created by the MTG are licensed under [CC BY-NC-SA
+4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)",
+https://essentia.upf.edu/models.html, which lists the `discogs-maest-*`
+models; the PyTorch `.ckpt` files this package downloads from
+[palonso/MAEST releases](https://github.com/palonso/MAEST/releases) are the
+same underlying weights in a different export format — same project, same
+license terms, cross-referenced but not independently re-confirmed on the
+release page itself, (uncertain) only on that last link). The 2 backbone
+init checkpoints (PaSST, DeiT) are **Apache-2.0**, from their own upstream
+repos (`gh api repos/kkoutini/PaSST/license`, `gh api
+repos/facebookresearch/deit --jq .license`, both verified 2026-09-14) — more
+permissive than the package's own AGPL-3.0, no extra constraint. openmirlab
+is non-commercial, so the NC weights are usable here, but any downstream
+consumer of a hosted endpoint (see below) is not automatically covered.
+
+**Hosted / network use (AGPL-3.0 §13, "Remote Network Interaction")**: if
+this package is run inside a network-facing service (e.g. as a phonon HTTP
+provider behind an MCP/API gateway) and users interact with it remotely,
+§13 requires the operator to give those users a way to obtain the
+Corresponding Source of the exact modified version being run — normally by
+prominently offering it through the service itself (a source-code link plus
+the running commit/version surfaced in the provider's own response or
+status metadata), not merely by having the code exist on GitHub. This
+package's own source is already public
+(https://github.com/openmirlab/maest-infer), so the obligation is
+satisfiable, but the *offer* has to be made by whatever wraps this package
+as a network service — that wrapper is outside this repo and is not audited
+here. Whether the §13 boundary extends to a calling process that merely
+`import`s this package (rather than modifying it) is a genuinely contested
+question under AGPL and is not resolved here (uncertain) — treat any
+network-facing wrapper as in-scope until an org decision says otherwise.
+This is not legal advice.
 
 ---
 

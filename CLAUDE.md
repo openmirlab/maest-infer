@@ -9,6 +9,38 @@ maest-infer is an inference-only repackaging of [MAEST](https://github.com/palon
 labels) behind a single `get_maest(arch=...)` entry point. See README.md for
 the public API and the model table.
 
+## License status (read before wiring this into any hosted provider)
+
+- **Code: AGPL-3.0-only, not optional.** Verified via `gh api
+  repos/palonso/maest/license` (2026-09-14) → `AGPL-3.0`. This package is a
+  direct inference-only port of that code (architecture, checkpoint
+  loading, mel front end — see NOTICE), so it is a derivative work and
+  cannot be relicensed to something more permissive; the constitution's own
+  art. 7 flags this repo by name as the org's one AGPL exception requiring
+  an explicit decision (`plugins/openmirlab/CLAUDE.md:535` as of this
+  audit).
+- **Weights: CC BY-NC-SA 4.0** for the 8 MAEST checkpoints — confirmed on
+  MTG's own page (https://essentia.upf.edu/models.html: "All the models
+  created by the MTG are licensed under CC BY-NC-SA 4.0"; the page lists
+  the `discogs-maest-*` models). Non-commercial and share-alike; layered on
+  top of, not replacing, the code's AGPL-3.0 obligation. The 2 backbone
+  init checkpoints (PaSST, DeiT) are Apache-2.0 from their own upstream
+  repos, more permissive, no extra constraint. `config/checkpoints.toml`
+  and `data/checkpoints.json` carry these per-checkpoint license strings —
+  keep them in sync with this section if the upstream facts change.
+- **AGPL-3.0 §13 obligation for any network-facing wrapper (e.g. a phonon
+  provider)**: whoever runs this package behind a network service must
+  prominently offer remote users the Corresponding Source of the exact
+  running version — a public repo existing passively is not the same as
+  the running service making that offer. This repo's own source is already
+  public; a provider wrapper making the offer is outside this repo's scope
+  and not something this package can guarantee on its own. Whether merely
+  `import`ing this package (vs. modifying it) pulls the calling process
+  under the same AGPL boundary is contested and left (uncertain) here —
+  treat any such wrapper as AGPL-covered until the org rules otherwise.
+  This is not legal advice; see README.md's License section for the fuller
+  statement and sources.
+
 ## Module layout (post-ADOPT split)
 
 The original single 1410-line `maest.py` is now split by concern:
