@@ -6,7 +6,7 @@ import torch
 
 from maest_infer.clean_api import MAESTSession, classify_genre
 from maest_infer.discogs_labels import discogs_519labels
-from maest_infer import genre
+from maest_infer import genre, genre_metadata, preview_classification
 from maest_infer.genre import GENRE_ARCH, _build_windows, _coverage_weights, normalize_waveform
 
 
@@ -45,6 +45,56 @@ class _GenreModel(torch.nn.Module):
 
 def _session(model=None, arch=GENRE_ARCH):
     return MAESTSession(arch=arch, model=model or _GenreModel())
+
+
+def test_metadata_and_preview_do_not_load_model(monkeypatch):
+    import maest_infer.loading as loading
+
+    monkeypatch.setattr(loading, "get_maest", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("loaded")))
+
+    metadata = genre_metadata()
+    assert metadata["model_arch"] == GENRE_ARCH
+    assert metadata["taxonomy"]["label_count"] == 519
+    assert metadata["taxonomy"]["labels"] == discogs_519labels
+    assert metadata["modes"]["default"] == "full_track"
+    assert metadata["parameters"]["window_seconds"] == {"default": 30, "minimum": 5, "maximum": 30}
+
+    preview = preview_classification(sample_count=65 * 16000, window_seconds=30, hop_seconds=30)
+    assert preview["parameters"]["mode"] == "full_track"
+    assert preview["parameters"]["hop_seconds"] == 30
+    assert preview["analysis"]["window_count"] == 3
+
+
+def test_preview_without_duration_validates_options_but_analysis_is_unknown():
+    preview = preview_classification(mode="time_curve", curve_labels=[discogs_519labels[0]], batch_size=2)
+
+    assert preview["analysis"] is None
+    assert preview["parameters"]["curve_labels"] == [discogs_519labels[0]]
+    assert preview["parameters"]["batch_size"] == 2
+
+
+def test_preview_and_classify_share_window_parameters_and_analysis():
+    audio = torch.zeros(65 * 16000)
+    preview = preview_classification(
+        sample_count=audio.numel(),
+        mode="full_track",
+        window_seconds=30,
+        hop_seconds=30,
+        top_n=3,
+        batch_size=2,
+    )
+    result = _session().classify(
+        audio,
+        sample_rate=16000,
+        mode="full_track",
+        window_seconds=30,
+        hop_seconds=30,
+        top_n=3,
+        batch_size=2,
+    )
+
+    assert result["parameters"] == preview["parameters"]
+    assert result["analysis"] == preview["analysis"]
 
 
 def test_full_track_ranks_after_full_label_weighted_mean():
@@ -201,6 +251,23 @@ def test_time_curve_auto_curves_use_per_window_union_capped_to_top_n():
 def test_option_validation_is_strict(kwargs, match):
     with pytest.raises(ValueError, match=match):
         _session().classify(torch.zeros(5 * 16000), sample_rate=16000, **kwargs)
+    with pytest.raises(ValueError, match=match):
+        preview_classification(sample_count=5 * 16000, **kwargs)
+
+
+def test_preview_rejects_bad_sample_count_and_window_count_before_model_load(monkeypatch):
+    import maest_infer.loading as loading
+
+    monkeypatch.setattr(loading, "get_maest", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("loaded")))
+
+    with pytest.raises(ValueError, match="sample_count"):
+        preview_classification(sample_count=0)
+    with pytest.raises(ValueError, match="sample_rate"):
+        preview_classification(sample_rate=True, sample_count=16000)
+    with pytest.raises(ValueError, match="start_seconds"):
+        preview_classification(sample_count=16000, mode="segment", start_seconds=2.0)
+    with pytest.raises(ValueError, match="maximum"):
+        preview_classification(sample_count=(4097 + 4) * 16000, window_seconds=5, hop_seconds=1)
 
 
 def test_audio_validation_rejects_bad_inputs_and_resamples():

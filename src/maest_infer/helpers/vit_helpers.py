@@ -72,6 +72,11 @@ def _verify_checkpoint_integrity(url: str, expected_sha256: str | None = None) -
     _logger.info(f"Checkpoint integrity verified for {filename} (sha256 matches TOML metadata).")
 
 
+def _checkpoint_id_for_url(url: str) -> str:
+    entry = checkpoint_for_url(url)
+    return (entry or {}).get("name") or Path(urlparse(url).path).name
+
+
 def overlay_external_default_cfg(default_cfg, kwargs):
     """Overlay 'external_default_cfg' in kwargs on top of default_cfg arg."""
     external_default_cfg = kwargs.pop("external_default_cfg", None)
@@ -262,6 +267,11 @@ def load_pretrained(
         check_hash=False,
     )
     _verify_checkpoint_integrity(pretrained_url, pretrained_cfg.get("checkpoint_sha256"))
+    model._maest_loaded_checkpoint = {
+        "path": str(torch_hub_checkpoint_path(pretrained_url)),
+        "url": pretrained_url,
+        "checkpoint_id": _checkpoint_id_for_url(pretrained_url),
+    }
 
     if filter_fn is not None:
         try:

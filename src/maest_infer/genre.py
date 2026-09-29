@@ -43,6 +43,71 @@ class _Window:
     padding_samples: int
 
 
+@dataclass(frozen=True)
+class _ClassificationPlan:
+    parameters: dict[str, Any]
+    analysis: dict[str, Any] | None
+    windows: list[_Window] | None
+    weights: torch.Tensor | None
+    sample_count: int | None
+
+
+def genre_metadata() -> dict[str, Any]:
+    """Return static genre API metadata without constructing a model."""
+    return {
+        "model_arch": GENRE_ARCH,
+        "taxonomy": {
+            **TAXONOMY,
+            "labels": list(discogs_519labels),
+        },
+        "score_type": SCORE_TYPE,
+        "sample_rate": TARGET_SAMPLE_RATE,
+        "modes": {
+            "default": "full_track",
+            "supported": ["segment", "full_track", "time_curve"],
+        },
+        "parameters": {
+            "window_seconds": {"default": 30, "minimum": 5, "maximum": 30},
+            "hop_seconds": {"default": None, "minimum": 1, "maximum": "window_seconds"},
+            "start_seconds": {"default": None, "minimum": 0, "modes": ["segment"]},
+            "top_n": {"default": 10, "minimum": 1, "maximum": 50},
+            "curve_labels": {"default": None, "maximum_count": 50, "modes": ["time_curve"]},
+            "batch_size": {"default": 1, "minimum": 1, "maximum": MAX_BATCH_SIZE},
+            "window_count": {"maximum": MAX_WINDOWS},
+        },
+    }
+
+
+def preview_classification(
+    *,
+    sample_rate: int = TARGET_SAMPLE_RATE,
+    sample_count: int | None = None,
+    mode: str = "full_track",
+    window_seconds: int = 30,
+    hop_seconds: int | None = None,
+    start_seconds: float | int | None = None,
+    top_n: int = 10,
+    curve_labels: Sequence[str] | None = None,
+    batch_size: int = 1,
+) -> dict[str, Any]:
+    """Validate and preview a genre classification request without loading a model."""
+    plan = _plan_classification(
+        sample_rate=sample_rate,
+        sample_count=sample_count,
+        mode=mode,
+        window_seconds=window_seconds,
+        hop_seconds=hop_seconds,
+        start_seconds=start_seconds,
+        top_n=top_n,
+        curve_labels=curve_labels,
+        batch_size=batch_size,
+    )
+    return {
+        "parameters": dict(plan.parameters),
+        "analysis": dict(plan.analysis) if plan.analysis is not None else None,
+    }
+
+
 def classify_genre(audio: Any, *, sample_rate: int, device: str | None = "auto", **kwargs: Any) -> dict[str, Any]:
     """Load the 519-label MAEST checkpoint once and classify a mono waveform."""
     from .clean_api import MAESTSession
@@ -68,7 +133,10 @@ def classify_with_session(
     if getattr(session, "status", None) != "ready" or getattr(session, "_model", None) is None:
         raise RuntimeError("MAESTSession must be ready; call load() before classify()")
     _validate_arch(getattr(session, "arch", None), session._model)
-    options = _validate_options(
+    waveform = normalize_waveform(audio, sample_rate=sample_rate)
+    plan = _plan_classification(
+        sample_rate=TARGET_SAMPLE_RATE,
+        sample_count=waveform.shape[0],
         mode=mode,
         window_seconds=window_seconds,
         hop_seconds=hop_seconds,
@@ -77,37 +145,25 @@ def classify_with_session(
         curve_labels=curve_labels,
         batch_size=batch_size,
     )
-    waveform = normalize_waveform(audio, sample_rate=sample_rate)
-    windows = _build_windows(
-        waveform.shape[0],
-        mode=options["mode"],
-        window_seconds=options["window_seconds"],
-        hop_seconds=options["hop_seconds"],
-        start_seconds=options["start_seconds"],
-    )
-    scores = _infer_window_scores(session._model, waveform, windows, batch_size=options["batch_size"])
-    weights = _coverage_weights(windows, waveform.shape[0])
+    options = plan.parameters
+    assert plan.windows is not None
+    assert plan.weights is not None
+    scores = _infer_window_scores(session._model, waveform, plan.windows, batch_size=options["batch_size"])
+    weights = plan.weights
     aggregate_scores = _aggregate_scores(scores, weights)
     rankings = _rank_scores(aggregate_scores, options["top_n"])
     result: dict[str, Any] = {
         "mode": options["mode"],
+        "parameters": dict(options),
         "taxonomy": dict(TAXONOMY),
         "score_type": SCORE_TYPE,
-        "analysis": _analysis_payload(
-            waveform.shape[0],
-            windows,
-            weights,
-            mode=options["mode"],
-            window_seconds=options["window_seconds"],
-            hop_seconds=options["hop_seconds"],
-            top_n=options["top_n"],
-        ),
+        "analysis": dict(plan.analysis or {}),
         "rankings": rankings,
     }
     if options["mode"] == "time_curve":
         curve_indices = _select_curve_indices(scores, options["top_n"], options["curve_labels"])
         result["timeline"] = {
-            "windows": [_window_payload(window, weights[window.index], TARGET_SAMPLE_RATE) for window in windows],
+            "windows": [_window_payload(window, weights[window.index], TARGET_SAMPLE_RATE) for window in plan.windows],
             "series": [_series_payload(index, scores[:, index]) for index in curve_indices],
         }
     return result
@@ -115,8 +171,7 @@ def classify_with_session(
 
 def normalize_waveform(audio: Any, *, sample_rate: int) -> torch.Tensor:
     """Return a finite CPU float32 mono waveform at MAEST's 16 kHz rate."""
-    if isinstance(sample_rate, bool) or not isinstance(sample_rate, int) or sample_rate <= 0:
-        raise ValueError("sample_rate must be a positive integer")
+    _validate_sample_rate(sample_rate)
     if isinstance(audio, torch.Tensor):
         if audio.dtype == torch.bool or not torch.is_floating_point(audio):
             raise ValueError("audio must be a floating-point mono waveform")
@@ -188,6 +243,81 @@ def _validate_options(**kwargs: Any) -> dict[str, Any]:
         "curve_labels": curve_labels,
         "batch_size": batch_size,
     }
+
+
+def _plan_classification(
+    *,
+    sample_rate: int,
+    sample_count: int | None,
+    mode: str,
+    window_seconds: int,
+    hop_seconds: int | None,
+    start_seconds: float | int | None,
+    top_n: int,
+    curve_labels: Sequence[str] | None,
+    batch_size: int,
+) -> _ClassificationPlan:
+    _validate_sample_rate(sample_rate)
+    options = _validate_options(
+        mode=mode,
+        window_seconds=window_seconds,
+        hop_seconds=hop_seconds,
+        start_seconds=start_seconds,
+        top_n=top_n,
+        curve_labels=curve_labels,
+        batch_size=batch_size,
+    )
+    parameters = {
+        "sample_rate": sample_rate,
+        "sample_count": sample_count,
+        **options,
+        "curve_labels": list(options["curve_labels"]) if options["curve_labels"] is not None else None,
+    }
+    if sample_count is None:
+        return _ClassificationPlan(
+            parameters=parameters,
+            analysis=None,
+            windows=None,
+            weights=None,
+            sample_count=None,
+        )
+    if isinstance(sample_count, bool) or not isinstance(sample_count, int) or sample_count <= 0:
+        raise ValueError("sample_count must be a positive integer or None")
+    target_sample_count = sample_count
+    if sample_rate != TARGET_SAMPLE_RATE:
+        target_sample_count = int(round(sample_count * TARGET_SAMPLE_RATE / sample_rate))
+        if target_sample_count <= 0:
+            raise ValueError("sample_count must resolve to at least one 16 kHz sample")
+    windows = _build_windows(
+        target_sample_count,
+        mode=options["mode"],
+        window_seconds=options["window_seconds"],
+        hop_seconds=options["hop_seconds"],
+        start_seconds=options["start_seconds"],
+    )
+    weights = _coverage_weights(windows, target_sample_count)
+    analysis = _analysis_payload(
+        target_sample_count,
+        windows,
+        weights,
+        mode=options["mode"],
+        window_seconds=options["window_seconds"],
+        hop_seconds=options["hop_seconds"],
+        top_n=options["top_n"],
+    )
+    return _ClassificationPlan(
+        parameters=parameters,
+        analysis=analysis,
+        windows=windows,
+        weights=weights,
+        sample_count=target_sample_count,
+    )
+
+
+def _validate_sample_rate(sample_rate: Any) -> int:
+    if isinstance(sample_rate, bool) or not isinstance(sample_rate, int) or sample_rate <= 0:
+        raise ValueError("sample_rate must be a positive integer")
+    return sample_rate
 
 
 def _bounded_int(name: str, value: Any, minimum: int, maximum: int) -> int:

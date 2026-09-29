@@ -162,6 +162,12 @@ before model construction. `mps` is not supported -- Apple MLX/MPS backends
 are permanently out of scope for this org's projects (org canon
 openmirlab-dev 5e588e6, art. 4b).
 
+`cache_info()` is read-only and never downloads weights. After `load()`,
+`loaded_checkpoint_info()` reports the actual resolved checkpoint path, SHA-256
+computed from those bytes, checkpoint id, model arch, and concrete device.
+Custom local checkpoints report their own hash rather than any packaged default
+hash.
+
 ### Experimental genre analysis
 
 The additive task API returns ranked Discogs styles for a selected segment, a
@@ -172,10 +178,13 @@ This branch API has not been released or certified for hosted service use.
 
 ```python
 import numpy as np
-from maest_infer import MAESTSession
+from maest_infer import MAESTSession, genre_metadata, preview_classification
 
 # Replace with decoded mono floating-point audio and its actual sample rate.
 audio = np.zeros(16000 * 60, dtype=np.float32)
+metadata = genre_metadata()
+preview = preview_classification(sample_count=audio.shape[0], window_seconds=30)
+
 with MAESTSession(arch="discogs-maest-30s-pw-129e-519l", device="cpu") as session:
     summary = session.classify(audio, sample_rate=16000)
     opening = session.classify(audio, sample_rate=16000, mode="segment")
@@ -197,6 +206,12 @@ stereo or normalize integer PCM. File paths are not accepted.
 `classify_genre(audio, sample_rate=..., device="cpu", ...)` is the one-shot
 alternative: it creates and closes a fresh session each call. Reuse an explicit
 session for multiple requests; it is not safe for concurrent classify/release calls.
+`genre_metadata()` and `preview_classification(...)` do not construct a model,
+download weights, activate CUDA, or require a waveform. Preview validates the
+same mode/window/label/batch options as `classify`; pass a known duration as
+16 kHz `sample_count` to get the same coverage and window-count analysis that
+classification will use. If `sample_count` is omitted, `analysis` is `None`
+because duration-dependent checks are unknown.
 
 | Parameter | Contract |
 |---|---|

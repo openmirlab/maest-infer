@@ -13,6 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   modes; configurable windows/hops, bounded inference batches, explicit sample
   rates, coverage-corrected aggregation, and stable Top-N ordering. Existing
   raw inference APIs and session defaults are unchanged.
+- Public no-load `genre_metadata()` and `preview_classification(...)` for
+  provider integration. Preview shares classification validation/window planning,
+  returns normalized parameters, and reports duration-dependent analysis when
+  `sample_count` is known.
+- Ready-only `MAESTSession.loaded_checkpoint_info()` for actual loaded artifact
+  provenance: resolved path, byte-derived SHA-256, checkpoint id, model arch,
+  and concrete device.
 
 ### Changed
 - Rename the unreleased genre mode values from `excerpt` / `aggregate` /
@@ -20,6 +27,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `time_curve` keeps returning its dense curve data under the `timeline` result key.
 - Add strict MAEST device validation for explicit `cpu`, `cuda`, and
   `cuda:N` requests while preserving legacy `None`/`auto` selection.
+- Validate explicit devices before model construction and clean up any failed
+  partial load without hiding the `failed` session status.
+- Fix `checkpoint_url` / `checkpoint_sha256` overrides by passing generic URL
+  configs through the existing verified loader while preserving default raw
+  loading behavior.
 
 ### Docs
 - Document the AGPL-3.0-only license constraint precisely, including what

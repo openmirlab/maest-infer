@@ -11,18 +11,28 @@ the public API and the model table.
 
 ## Experimental genre task API
 
-The additive `MAESTSession.classify` / `classify_genre` surface is a local branch
-experiment for 519-label genre ranking. Modes are segment, full_track, time_curve;
-legacy session defaults and raw inference remain unchanged. See README for the
-input/parameter contract. Task inference validates and resamples mono float
-waveforms, bounds device batches, preserves full label scores until aggregation,
-and reports dense selected-label curves in the `timeline` result payload for
-`time_curve`. It must not import a hosted-service runtime or assume a Phonon
-duration limit. Sessions are not concurrent-call safe.
+The additive `genre_metadata` / `preview_classification` /
+`MAESTSession.classify` / `classify_genre` surface is a local branch experiment
+for 519-label genre ranking. Modes are segment, full_track, time_curve; legacy
+session defaults and raw inference remain unchanged. See README for the
+input/parameter contract. Metadata and preview must not construct a model,
+download weights, activate CUDA, or require a waveform. Task inference
+validates and resamples mono float waveforms, bounds device batches, preserves
+full label scores until aggregation, and reports dense selected-label curves in
+the `timeline` result payload for `time_curve`. It must not import a
+hosted-service runtime or assume a Phonon duration limit. Sessions are not
+concurrent-call safe.
 
 Keep normalization, window planning, aggregation and sorting package-owned.
 GPU task inference must initialize the lazy mel frontend on the model device.
-Do not alter the raw model's forward path to make new task tests pass.
+Do not alter the raw model's forward path to make new task tests pass. Keep
+preview validation/window planning shared with classify so provider admission
+and execution cannot drift.
+
+`MAESTSession.cache_info()` remains read-only/no-download. The ready-only
+`loaded_checkpoint_info()` reports the actual loaded artifact path, byte hash,
+checkpoint id, model arch, and concrete device; custom local checkpoints must
+never echo an unrelated packaged default hash.
 
 Verification: `PYTHONPATH=src .venv/bin/python -m pytest -q`. The historical
 bit-exact fixture can skip on a different torch build; preserve a separate

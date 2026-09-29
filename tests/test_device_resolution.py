@@ -23,7 +23,7 @@ class _FakeModel:
 def test_device_auto_resolves_like_none(monkeypatch):
     monkeypatch.setattr(loading, "get_maest", lambda *a, **kw: _FakeModel())
 
-    expected = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    expected = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     auto_session = MAESTSession(device="auto").load()
     none_session = MAESTSession(device=None).load()
