@@ -13,6 +13,8 @@ import maest_infer
 def test_package_imports():
     assert hasattr(maest_infer, "get_maest")
     assert hasattr(maest_infer, "MAEST")
+    assert hasattr(maest_infer, "genre_metadata")
+    assert hasattr(maest_infer, "preview_classification")
 
 
 def test_version_is_a_string():

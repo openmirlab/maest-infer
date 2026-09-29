@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Experimental `MAESTSession.classify` and `classify_genre` for ranked 519-label
+  Discogs genre analysis: segment, whole-track `full_track`, and dense `time_curve`
+  modes; configurable windows/hops, bounded inference batches, explicit sample
+  rates, coverage-corrected aggregation, and stable Top-N ordering. Existing
+  raw inference APIs and session defaults are unchanged.
+- Public no-load `genre_metadata()` and `preview_classification(...)` for
+  provider integration. Preview shares classification validation/window planning,
+  returns normalized parameters, and reports duration-dependent analysis when
+  `sample_count` is known.
+- Ready-only `MAESTSession.loaded_checkpoint_info()` for actual loaded artifact
+  provenance: resolved path, byte-derived SHA-256, checkpoint id, model arch,
+  and concrete device.
+
+### Changed
+- Report analyzed duration from exact sample coverage so densely overlapping windows
+  cannot exceed the input duration through floating-point roundoff.
+- Rename the unreleased genre mode values from `excerpt` / `aggregate` /
+  `timeline` to `segment` / `full_track` / `time_curve`. Old aliases are rejected;
+  `time_curve` keeps returning its dense curve data under the `timeline` result key.
+- Add strict MAEST device validation for explicit `cpu`, `cuda`, and
+  `cuda:N` requests while preserving legacy `None`/`auto` selection.
+- Validate explicit devices before model construction and clean up any failed
+  partial load without hiding the `failed` session status.
+- Fix `checkpoint_url` / `checkpoint_sha256` overrides by passing generic URL
+  configs through the existing verified loader while preserving default raw
+  loading behavior.
+
 ### Docs
 - Document the AGPL-3.0-only license constraint precisely, including what
   §13 ("Remote Network Interaction") implies for running this package
@@ -19,10 +47,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   NOTICE"` fields in `config/checkpoints.toml` (and mirror in the legacy
   `data/checkpoints.json`) with these verified values. No relicensing; no
   code behavior change.
-
-### Changed
-- Add strict MAEST device validation for explicit `cpu`, `cuda`, and
-  `cuda:N` requests while preserving legacy `None`/`auto` selection.
 
 ### Removed
 - MPS device support (org decision 2026-09-14). Apple MLX/MPS backends are

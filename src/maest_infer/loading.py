@@ -30,6 +30,7 @@ Reads: maest_infer.configs, maest_infer.model.MAEST, maest_infer.layers
 import logging
 import math
 import warnings
+from pathlib import Path
 
 import torch
 import torch.nn.functional as F
@@ -407,6 +408,7 @@ def get_maest(
     s_patchout_t_interleaved: int = 0,
     distilled_type: str = "mean",
     checkpoint: str = None,
+    external_default_cfg: dict | None = None,
     checkpoint_swa_weigts: bool = True,
     checkpoint_discard_head: bool = False,
 ):
@@ -426,6 +428,7 @@ def get_maest(
         s_patchout_f: Structured frequency patchout (training only)
         distilled_type: Distillation type ("mean" or "separated")
         checkpoint: Path to custom checkpoint
+        external_default_cfg: URL/SHA override merged into the packaged default_cfg
         checkpoint_swa_weigts: Use SWA weights from checkpoint
         checkpoint_discard_head: Discard classification head from checkpoint
 
@@ -454,6 +457,7 @@ def get_maest(
         s_patchout_t_indices=s_patchout_t_indices,
         s_patchout_t_interleaved=s_patchout_t_interleaved,
         distilled_type=distilled_type,
+        external_default_cfg=external_default_cfg,
     )
     model = fix_embedding_layer(model)
     model = lighten_model(model)
@@ -468,5 +472,10 @@ def get_maest(
         if checkpoint_discard_head:
             state_dict = {k: v for k, v in state_dict.items() if "head" not in k}
         model.load_state_dict(state_dict, strict=False)
+        model._maest_loaded_checkpoint = {
+            "path": str(checkpoint),
+            "url": None,
+            "checkpoint_id": Path(checkpoint).name,
+        }
 
     return model

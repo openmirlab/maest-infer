@@ -9,6 +9,46 @@ maest-infer is an inference-only repackaging of [MAEST](https://github.com/palon
 labels) behind a single `get_maest(arch=...)` entry point. See README.md for
 the public API and the model table.
 
+## Experimental genre task API
+
+The additive `genre_metadata` / `preview_classification` /
+`MAESTSession.classify` / `classify_genre` surface is a local branch experiment
+for 519-label genre ranking. Modes are segment, full_track, time_curve; legacy
+session defaults and raw inference remain unchanged. See README for the
+input/parameter contract. Metadata and preview must not construct a model,
+download weights, activate CUDA, or require a waveform. Task inference
+validates and resamples mono float waveforms, bounds device batches, preserves
+full label scores until aggregation, and reports dense selected-label curves in
+the `timeline` result payload for `time_curve`. It must not import a
+hosted-service runtime or assume a Phonon duration limit. Sessions are not
+concurrent-call safe.
+
+Keep normalization, window planning, aggregation and sorting package-owned.
+GPU task inference must initialize the lazy mel frontend on the model device.
+Do not alter the raw model's forward path to make new task tests pass. Keep
+preview validation/window planning shared with classify so provider admission
+and execution cannot drift.
+
+`MAESTSession.cache_info()` remains read-only/no-download. The ready-only
+`loaded_checkpoint_info()` reports the actual loaded artifact path, byte hash,
+checkpoint id, model arch, and concrete device; custom local checkpoints must
+never echo an unrelated packaged default hash.
+
+Verification: `PYTHONPATH=src .venv/bin/python -m pytest -q`. The historical
+bit-exact fixture can skip on a different torch build; preserve a separate
+current-environment before/after raw-output comparison for this branch. The
+pre-registered experiment is in
+`docs/blueprints/plans/2026-09-29-genre-analysis-probe.md`; disposable harness,
+decoded local audio and raw JSON live outside the repo at
+`/tmp/maest-genre-probe-20260929/`. Run its `probe.py` from this repo with
+`PYTHONPATH=src .venv/bin/python /tmp/maest-genre-probe-20260929/probe.py` when
+that local harness is available. Findings record the exact environment and
+limits; successful execution does not certify genre accuracy.
+
+The public `openmirlab-skills/plugins/mir/CLAUDE.md` capability row was inspected:
+it already routes music classification to this package. New branch-only examples
+are deliberately not advertised in public skills until this API is released.
+
 ## License status (read before wiring this into any hosted provider)
 
 - **Code: AGPL-3.0-only, not optional.** Verified via `gh api
