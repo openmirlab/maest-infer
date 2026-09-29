@@ -385,6 +385,8 @@ def _build_windows(
     end_seconds: float | None = None,
 ) -> list[_Window]:
     window_samples = window_seconds * TARGET_SAMPLE_RATE
+    if (start_seconds or 0.0) >= sample_count / TARGET_SAMPLE_RATE:
+        raise ValueError("start_seconds must be within the audio duration")
     start_sample = int(round((start_seconds or 0.0) * TARGET_SAMPLE_RATE))
     if start_sample >= sample_count:
         raise ValueError("start_seconds must be within the audio duration")
@@ -393,7 +395,7 @@ def _build_windows(
 
     range_end = sample_count
     if end_seconds is not None:
-        range_end = min(sample_count, int(round(end_seconds * TARGET_SAMPLE_RATE)))
+        range_end = min(sample_count, int(round(min(end_seconds, sample_count / TARGET_SAMPLE_RATE) * TARGET_SAMPLE_RATE)))
     if range_end <= start_sample:
         raise ValueError("end_seconds must follow start_seconds by at least one audio sample")
     if range_end - start_sample <= window_samples:

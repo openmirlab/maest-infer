@@ -470,7 +470,8 @@ def test_range_end_clips_at_eof_and_defaults_preserve_single_window(mode):
 
 @pytest.mark.parametrize("options", [
     {"end_seconds": True}, {"end_seconds": float("nan")}, {"end_seconds": float("inf")},
-    {"end_seconds": -1}, {"start_seconds": 4, "end_seconds": 4},
+    {"end_seconds": -1}, {"start_seconds": 1e308, "end_seconds": None},
+    {"start_seconds": 4, "end_seconds": 4},
     {"start_seconds": 4, "end_seconds": 3}, {"start_seconds": 60, "end_seconds": 80},
     {"start_seconds": 4, "end_seconds": 4.000001},
     {"mode": "full_track", "end_seconds": 30},
@@ -483,3 +484,8 @@ def test_invalid_range_rejected_by_preview_and_inference(options):
     with pytest.raises(ValueError):
         _session(model).classify(torch.zeros(50 * 16000), sample_rate=16000, **kwargs)
     assert model.calls == []
+
+
+def test_large_finite_end_clips_before_sample_conversion():
+    preview = preview_classification(sample_count=16000, mode="segment", end_seconds=1e308)
+    assert preview["analysis"]["end_seconds"] == 1
