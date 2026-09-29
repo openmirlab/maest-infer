@@ -9,10 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Experimental `MAESTSession.classify` and `classify_genre` for ranked 519-label
-  Discogs genre analysis: excerpt, whole-track aggregate, and dense timeline
+  Discogs genre analysis: segment, whole-track `full_track`, and dense `time_curve`
   modes; configurable windows/hops, bounded inference batches, explicit sample
   rates, coverage-corrected aggregation, and stable Top-N ordering. Existing
   raw inference APIs and session defaults are unchanged.
+
+### Changed
+- Rename the unreleased genre mode values from `excerpt` / `aggregate` /
+  `timeline` to `segment` / `full_track` / `time_curve`. Old aliases are rejected;
+  `time_curve` keeps returning its dense curve data under the `timeline` result key.
+- Add strict MAEST device validation for explicit `cpu`, `cuda`, and
+  `cuda:N` requests while preserving legacy `None`/`auto` selection.
 
 ### Docs
 - Document the AGPL-3.0-only license constraint precisely, including what
@@ -26,10 +33,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   NOTICE"` fields in `config/checkpoints.toml` (and mirror in the legacy
   `data/checkpoints.json`) with these verified values. No relicensing; no
   code behavior change.
-
-### Changed
-- Add strict MAEST device validation for explicit `cpu`, `cuda`, and
-  `cuda:N` requests while preserving legacy `None`/`auto` selection.
 
 ### Removed
 - MPS device support (org decision 2026-09-14). Apple MLX/MPS backends are

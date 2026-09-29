@@ -11,6 +11,11 @@ Keep 30 seconds as the default context. Shorter windows run successfully but
 materially change rankings; these observations do not establish their accuracy.
 No Phonon provider or Conductor registration has been implemented in this branch.
 
+Current public mode names are `segment`, `full_track` (default), and `time_curve`.
+The historical probe labels in this note use the original measured names:
+excerpt = segment, aggregate = full_track, timeline = time_curve. The
+`time_curve` mode still returns its dense curve data under the `timeline` key.
+
 ## Method and environment
 
 Pre-registered rules: [plan](../plans/2026-09-29-genre-analysis-probe.md).
@@ -113,14 +118,20 @@ this is not a measured host-RAM release guarantee.
 - Offline suite: **39 passed, 1 skipped, 10 network tests deselected**. The skip
   is the existing fixture recorded with a different torch build. The new local
   before/after comparison above passed; the old fixture was not overwritten.
+- Rename verification after the public mode-name change: **42 passed, 1 skipped,
+  10 network tests deselected**. A real GPU smoke compared `segment`,
+  `full_track` (including omitted default mode), and `time_curve` against the
+  earlier saved result JSON; scores, rankings, analysis data, windows, and curve
+  series stayed identical except for the echoed `mode` string. Raw smoke output:
+  `/tmp/maest-genre-probe-20260929/rename_smoke.json`.
 - Wheel built from sdist successfully; installed-package layout contains the
   new API and checkpoint TOML, excludes probes/tests/audio, and exports
   `MAESTSession.classify` and `classify_genre` from the extracted wheel.
 
 ## API decisions retained and limitations
 
-Three modes remain sufficient: opening = excerpt starting at zero. Every mode
-returns sorted rankings; timeline also returns dense selected-label curves.
+Three modes remain sufficient: opening = segment starting at zero. Every mode
+returns sorted rankings; time_curve also returns dense selected-label curves.
 All 519 scores are aggregated before Top-N. Default curve selection uses the
 union of per-window Top-N, prioritizing peak scores; it is distinct from the
 whole-track mean ranking and may highlight transient false positives.

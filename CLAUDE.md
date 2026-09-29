@@ -12,12 +12,13 @@ the public API and the model table.
 ## Experimental genre task API
 
 The additive `MAESTSession.classify` / `classify_genre` surface is a local branch
-experiment for 519-label genre ranking. Modes are excerpt, aggregate, timeline;
+experiment for 519-label genre ranking. Modes are segment, full_track, time_curve;
 legacy session defaults and raw inference remain unchanged. See README for the
 input/parameter contract. Task inference validates and resamples mono float
 waveforms, bounds device batches, preserves full label scores until aggregation,
-and reports dense selected-label curves. It must not import a hosted-service
-runtime or assume a Phonon duration limit. Sessions are not concurrent-call safe.
+and reports dense selected-label curves in the `timeline` result payload for
+`time_curve`. It must not import a hosted-service runtime or assume a Phonon
+duration limit. Sessions are not concurrent-call safe.
 
 Keep normalization, window planning, aggregation and sorting package-owned.
 GPU task inference must initialize the lazy mel frontend on the model device.

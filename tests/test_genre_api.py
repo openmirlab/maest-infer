@@ -47,7 +47,7 @@ def _session(model=None, arch=GENRE_ARCH):
     return MAESTSession(arch=arch, model=model or _GenreModel())
 
 
-def test_aggregate_ranks_after_full_label_weighted_mean():
+def test_full_track_ranks_after_full_label_weighted_mean():
     def logits_by_mean(mean):
         logits = torch.full((519,), -12.0)
         if mean < 0.5:
@@ -68,7 +68,6 @@ def test_aggregate_ranks_after_full_label_weighted_mean():
     result = _session(_GenreModel(logits_by_mean)).classify(
         audio,
         sample_rate=16000,
-        mode="aggregate",
         window_seconds=5,
         hop_seconds=5,
         top_n=1,
@@ -76,6 +75,7 @@ def test_aggregate_ranks_after_full_label_weighted_mean():
     )
 
     assert result["rankings"][0]["label_id"] == discogs_519labels[2]
+    assert result["mode"] == "full_track"
     assert result["analysis"]["window_count"] == 2
     assert result["analysis"]["aggregation"] == "coverage_weighted_mean_v1"
     assert result["analysis"]["tail_policy"] == "end_aligned"
@@ -92,7 +92,7 @@ def test_score_ties_sort_by_label_id(monkeypatch):
 def test_window_sequence_uses_end_aligned_final_window_and_overlap_weights():
     windows = _build_windows(
         65 * 16000,
-        mode="aggregate",
+        mode="full_track",
         window_seconds=30,
         hop_seconds=30,
         start_seconds=None,
@@ -108,18 +108,19 @@ def test_window_sequence_uses_end_aligned_final_window_and_overlap_weights():
     assert float(weights.sum()) == pytest.approx(65.0)
 
 
-def test_excerpt_start_truncates_at_end_and_pads_requested_window():
+def test_segment_start_truncates_at_end_and_pads_requested_window():
     model = _GenreModel()
     audio = torch.ones(8 * 16000)
     result = _session(model).classify(
         audio,
         sample_rate=16000,
-        mode="excerpt",
+        mode="segment",
         window_seconds=5,
         start_seconds=6.0,
     )
 
     assert result["analysis"]["start_seconds"] == 6.0
+    assert result["mode"] == "segment"
     assert result["analysis"]["end_seconds"] == 8.0
     assert result["analysis"]["analyzed_duration_seconds"] == pytest.approx(2.0)
     assert model.calls[0].shape == (1, 5 * 16000)
@@ -127,14 +128,14 @@ def test_excerpt_start_truncates_at_end_and_pads_requested_window():
     assert result["analysis"]["tail_policy"] == "excerpt_truncated_padded"
 
 
-def test_timeline_has_dense_scores_and_explicit_curves_preserve_order():
+def test_time_curve_has_dense_scores_and_explicit_curves_preserve_order():
     model = _GenreModel()
     audio = torch.linspace(-1.0, 1.0, 10 * 16000)
     labels = [discogs_519labels[3], discogs_519labels[1]]
     result = _session(model).classify(
         audio,
         sample_rate=16000,
-        mode="timeline",
+        mode="time_curve",
         window_seconds=5,
         hop_seconds=5,
         top_n=3,
@@ -142,20 +143,21 @@ def test_timeline_has_dense_scores_and_explicit_curves_preserve_order():
     )
 
     assert [series["label_id"] for series in result["timeline"]["series"]] == labels
+    assert result["mode"] == "time_curve"
     assert len(result["timeline"]["windows"]) == 2
     assert "aggregation_weight_seconds" in result["timeline"]["windows"][0]
     assert all(len(series["scores"]) == 2 for series in result["timeline"]["series"])
     assert result["rankings"] == _session(model).classify(
         audio,
         sample_rate=16000,
-        mode="aggregate",
+        mode="full_track",
         window_seconds=5,
         hop_seconds=5,
         top_n=3,
     )["rankings"]
 
 
-def test_timeline_auto_curves_use_per_window_union_capped_to_top_n():
+def test_time_curve_auto_curves_use_per_window_union_capped_to_top_n():
     def logits_by_mean(mean):
         logits = torch.full((519,), -12.0)
         logits[0 if mean < 0.5 else 1] = 10.0
@@ -166,7 +168,7 @@ def test_timeline_auto_curves_use_per_window_union_capped_to_top_n():
     result = _session(_GenreModel(logits_by_mean)).classify(
         audio,
         sample_rate=16000,
-        mode="timeline",
+        mode="time_curve",
         window_seconds=5,
         hop_seconds=5,
         top_n=2,
@@ -182,15 +184,18 @@ def test_timeline_auto_curves_use_per_window_union_capped_to_top_n():
     "kwargs, match",
     [
         ({"mode": "bad"}, "mode"),
+        ({"mode": "excerpt"}, "mode"),
+        ({"mode": "aggregate"}, "mode"),
+        ({"mode": "timeline"}, "mode"),
         ({"window_seconds": True}, "window_seconds"),
         ({"window_seconds": 31}, "window_seconds"),
-        ({"hop_seconds": 1, "mode": "excerpt"}, "hop_seconds"),
-        ({"start_seconds": 0, "mode": "aggregate"}, "start_seconds"),
+        ({"hop_seconds": 1, "mode": "segment"}, "hop_seconds"),
+        ({"start_seconds": 0, "mode": "full_track"}, "start_seconds"),
         ({"top_n": 0}, "top_n"),
         ({"batch_size": 33}, "batch_size"),
-        ({"mode": "timeline", "curve_labels": [discogs_519labels[0], discogs_519labels[0]]}, "unique"),
-        ({"mode": "timeline", "curve_labels": ["missing"]}, "unknown"),
-        ({"mode": "aggregate", "curve_labels": [discogs_519labels[0]]}, "curve_labels"),
+        ({"mode": "time_curve", "curve_labels": [discogs_519labels[0], discogs_519labels[0]]}, "unique"),
+        ({"mode": "time_curve", "curve_labels": ["missing"]}, "unknown"),
+        ({"mode": "full_track", "curve_labels": [discogs_519labels[0]]}, "curve_labels"),
     ],
 )
 def test_option_validation_is_strict(kwargs, match):
@@ -243,12 +248,12 @@ def test_lifecycle_reuses_loaded_model_and_rejects_released_or_wrong_arch():
         _session(mislabeled).classify(torch.zeros(5 * 16000), sample_rate=16000, window_seconds=5)
 
 
-def test_short_aggregate_pads_to_requested_window_but_weights_real_audio_only():
+def test_short_full_track_pads_to_requested_window_but_weights_real_audio_only():
     model = _GenreModel()
     result = _session(model).classify(
         torch.ones(2 * 16000),
         sample_rate=16000,
-        mode="aggregate",
+        mode="full_track",
         window_seconds=5,
     )
 
@@ -327,7 +332,7 @@ def test_window_count_guard_and_batch_bound_are_explicit():
     with pytest.raises(ValueError, match="maximum"):
         _build_windows(
             (4097 + 4) * 16000,
-            mode="aggregate",
+            mode="full_track",
             window_seconds=5,
             hop_seconds=1,
             start_seconds=None,
@@ -337,7 +342,7 @@ def test_window_count_guard_and_batch_bound_are_explicit():
     _session(model).classify(
         torch.zeros(15 * 16000),
         sample_rate=16000,
-        mode="aggregate",
+        mode="full_track",
         window_seconds=5,
         hop_seconds=5,
         batch_size=2,

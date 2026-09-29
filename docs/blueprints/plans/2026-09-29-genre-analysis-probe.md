@@ -12,18 +12,23 @@ The baseline suite is 16 passed, 1 skipped (environment-bound fixture), 10 netwo
 
 ## Approach
 
-1. Add session.classify with excerpt, aggregate (default), timeline; add classify_genre one-shot.
+Current public mode names are `segment`, `full_track` (default), and `time_curve`.
+This plan was executed before that rename; historical probe criteria below keep
+their original excerpt / aggregate / timeline labels.
+
+1. Add session.classify with segment, full_track (default), time_curve; add classify_genre one-shot.
    Use 519-label/30s architecture for the new task API. Existing session default stays 5s/400.
 2. Normalize explicit-rate mono float arrays/tensors at one boundary to CPU float32/16kHz.
    File decoding belongs to the caller in this experimental surface. No new dependencies.
 3. Window 5..30 integer seconds; hop 1..window (omitted equals window); top_n 1..50.
-   Excerpt start defaults zero, rejects hop; whole-track modes reject start. Curve labels only
-   in timeline. Use end-aligned final full windows, pad only shorter-than-window audio.
+   Segment start defaults zero, rejects hop; whole-track modes reject start. Curve labels only
+   in time_curve. Use end-aligned final full windows, pad only shorter-than-window audio.
 4. Batch bounded windows on the session's actual device, inference_mode, native shorter-window
    forward (2D input prevents legacy 1D truncation). Keep all logits/sigmoids until aggregation.
    Coverage-weighted mean with real-time weights; padding contributes no weight.
 5. JSON-compatible output: taxonomy, score_type, effective analysis parameters, sorted rankings;
-   timeline windows and dense label series, default candidates = union of per-window top_n,
+   time_curve returns a timeline payload with windows and dense label series,
+   default candidates = union of per-window top_n,
    selected by peak score with stable label tie break. Explicit labels select exact series.
 6. Add offline contract tests, paired README/CLAUDE documentation and CHANGELOG. Inspect public
    skills but leave unreleased branch-only examples out of the installed/public guidance.

@@ -56,7 +56,7 @@ def classify_with_session(
     audio: Any,
     *,
     sample_rate: int,
-    mode: str = "aggregate",
+    mode: str = "full_track",
     window_seconds: int = 30,
     hop_seconds: int | None = None,
     start_seconds: float | int | None = None,
@@ -104,7 +104,7 @@ def classify_with_session(
         ),
         "rankings": rankings,
     }
-    if options["mode"] == "timeline":
+    if options["mode"] == "time_curve":
         curve_indices = _select_curve_indices(scores, options["top_n"], options["curve_labels"])
         result["timeline"] = {
             "windows": [_window_payload(window, weights[window.index], TARGET_SAMPLE_RATE) for window in windows],
@@ -152,32 +152,32 @@ def _validate_arch(arch: Any, model: Any) -> None:
 
 def _validate_options(**kwargs: Any) -> dict[str, Any]:
     mode = kwargs["mode"]
-    if not isinstance(mode, str) or mode not in {"excerpt", "aggregate", "timeline"}:
-        raise ValueError("mode must be 'excerpt', 'aggregate', or 'timeline'")
+    if not isinstance(mode, str) or mode not in {"segment", "full_track", "time_curve"}:
+        raise ValueError("mode must be 'segment', 'full_track', or 'time_curve'")
     window_seconds = _bounded_int("window_seconds", kwargs["window_seconds"], 5, 30)
     top_n = _bounded_int("top_n", kwargs["top_n"], 1, 50)
     batch_size = _bounded_int("batch_size", kwargs["batch_size"], 1, MAX_BATCH_SIZE)
     hop_seconds = kwargs["hop_seconds"]
-    if mode == "excerpt":
+    if mode == "segment":
         if hop_seconds is not None:
-            raise ValueError("hop_seconds is only valid for aggregate and timeline modes")
+            raise ValueError("hop_seconds is only valid for full_track and time_curve modes")
         hop_value = None
     else:
         hop_value = window_seconds if hop_seconds is None else _bounded_int("hop_seconds", hop_seconds, 1, window_seconds)
     start_seconds = kwargs["start_seconds"]
-    if mode == "excerpt":
+    if mode == "segment":
         if start_seconds is None:
             start_value = 0.0
         else:
             start_value = _nonnegative_seconds("start_seconds", start_seconds)
     elif start_seconds is not None:
-        raise ValueError("start_seconds is only valid for excerpt mode")
+        raise ValueError("start_seconds is only valid for segment mode")
     else:
         start_value = None
     curve_labels = kwargs["curve_labels"]
     if curve_labels is not None:
-        if mode != "timeline":
-            raise ValueError("curve_labels is only valid for timeline mode")
+        if mode != "time_curve":
+            raise ValueError("curve_labels is only valid for time_curve mode")
         curve_labels = _validate_curve_labels(curve_labels)
     return {
         "mode": mode,
@@ -240,7 +240,7 @@ def _build_windows(
     window_samples = window_seconds * TARGET_SAMPLE_RATE
     duration = sample_count / TARGET_SAMPLE_RATE
     windows: list[_Window] = []
-    if mode == "excerpt":
+    if mode == "segment":
         start_sample = int(round((start_seconds or 0.0) * TARGET_SAMPLE_RATE))
         if start_sample >= sample_count:
             raise ValueError("start_seconds must be within the audio duration")
@@ -392,7 +392,7 @@ def _analysis_payload(
         "window_seconds": window_seconds,
         "hop_seconds": hop_seconds,
         "window_count": len(windows),
-        "tail_policy": "excerpt_truncated_padded" if mode == "excerpt" else "end_aligned",
+        "tail_policy": "excerpt_truncated_padded" if mode == "segment" else "end_aligned",
         "aggregation": "coverage_weighted_mean_v1",
         "top_n": top_n,
     }
