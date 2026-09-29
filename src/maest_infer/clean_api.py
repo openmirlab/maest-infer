@@ -129,7 +129,7 @@ class MAESTSession:
         return self._model(audio, **kwargs)
 
     def classify(self, audio, *, sample_rate, mode="full_track", window_seconds=30,
-                 hop_seconds=None, start_seconds=None, top_n=10,
+                 hop_seconds=None, start_seconds=None, end_seconds=None, top_n=10,
                  curve_labels=None, batch_size=1):
         """Classify a mono waveform with the experimental 519-label genre API."""
         from .genre import classify_with_session
@@ -142,6 +142,7 @@ class MAESTSession:
             window_seconds=window_seconds,
             hop_seconds=hop_seconds,
             start_seconds=start_seconds,
+            end_seconds=end_seconds,
             top_n=top_n,
             curve_labels=curve_labels,
             batch_size=batch_size,

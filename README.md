@@ -217,23 +217,40 @@ because duration-dependent checks are unknown.
 |---|---|
 | `mode` | `full_track` (default), `segment`, or `time_curve` |
 | `window_seconds` | Integer 5–30, default 30; shorter contexts may alter predictions |
-| `hop_seconds` | Integer 1–window, default window; forbidden for segment |
-| `start_seconds` | Segment only, default 0; finite nonnegative time inside the audio |
+| `hop_seconds` | Integer 1–window, default window; segment requires explicit `end_seconds` |
+| `start_seconds` | Segment or time curve, default 0; finite nonnegative time inside the audio |
+| `end_seconds` | Segment or time curve; exclusive end, greater than start, clipped at EOF |
 | `top_n` | Integer 1–50, default 10; number of ranked candidates |
 | `curve_labels` | Time curve only, unique exact labels, up to 50; omit for automatic selection |
 | `batch_size` | Runtime tuning for bounded inference batches; default 1, range 1–32 |
 
-`full_track` and `time_curve` cover the whole input. A final full window is aligned to
-its end when needed, so the last step may be shorter than hop. Only inputs or
-segments shorter than the requested window are right-padded; segment start is
-never shifted backward. Padding contributes no aggregation weight.
+`full_track` covers the whole input and rejects range bounds. `segment` without
+`end_seconds` preserves the single-window behavior. With `end_seconds`, it averages
+all windows covering that range, even if it exceeds 30 seconds. `time_curve` accepts
+the same bounds; an omitted end continues to EOF. Curve timestamps and analysis
+bounds remain absolute in the original audio. `window_seconds` is the model context,
+not a limit on range duration. For example, analyze an entire 39-second chorus:
+
+```python
+chorus = session.classify(
+    audio, sample_rate=16000, mode="segment",
+    start_seconds=42, end_seconds=81, window_seconds=30,
+)
+```
+
+Multi-window ranges use an end-aligned final window, so the last step may be shorter
+than hop. Short ranges are right-padded without reading past the requested end;
+padding contributes no aggregation weight. End values beyond EOF clip to EOF;
+start must precede the effective end by at least one sample.
 A request is rejected if its planned window count exceeds 4096. Hosted input
 limits and artifact delivery are the calling service's responsibility.
 
 All modes return JSON-compatible `rankings`, ordered by descending `score`,
 then ascending `label_id` on exact ties, with consecutive one-based `rank`.
 Scores are sigmoid activations, not calibrated probabilities or a distribution
-summing to one. Each row also includes `genre` and `subgenre`; parent genre
+summing to one. These scores do not measure energy, loudness, mood, instrument
+presence, arrangement changes, or musical section boundaries; those claims require
+separate measurements or listening evidence. Each row also includes `genre` and `subgenre`; parent genre
 scores are not synthesized by summing children. Aggregation uses all 519 label
 scores before selecting Top-N. Each instant averages its covering windows, then
 the track averages those values over real duration (`coverage_weighted_mean_v1`).
