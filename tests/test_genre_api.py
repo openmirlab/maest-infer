@@ -422,3 +422,70 @@ def test_dense_preview_reports_exact_analyzed_duration():
     result = preview_classification(sample_count=600 * 16000, mode="time_curve", hop_seconds=1)
     assert result["analysis"]["window_count"] == 571
     assert result["analysis"]["analyzed_duration_seconds"] == 600.0
+
+
+@pytest.mark.parametrize("mode", ["segment", "time_curve"])
+def test_explicit_range_matches_crop_and_excludes_outside_audio(mode):
+    audio = torch.full((100 * 16000,), 9.0)
+    audio[42 * 16000:81 * 16000] = torch.linspace(-0.5, 0.5, 39 * 16000)
+    model = _GenreModel()
+    options = dict(mode=mode, start_seconds=42, end_seconds=81, window_seconds=30, hop_seconds=15)
+    result = _session(model).classify(audio, sample_rate=16000, **options)
+    cropped = _session().classify(audio[42 * 16000:81 * 16000], sample_rate=16000, hop_seconds=15)
+    preview = preview_classification(sample_count=audio.numel(), **options)
+    assert result["rankings"] == cropped["rankings"]
+    assert result["analysis"] == preview["analysis"]
+    assert result["analysis"]["duration_seconds"] == 100
+    assert result["analysis"]["analyzed_duration_seconds"] == 39
+    assert result["analysis"]["window_count"] == 2
+    assert result["analysis"]["tail_policy"] == "end_aligned"
+    assert all(batch.abs().max() <= 0.5 for batch in model.calls)
+    if mode == "time_curve":
+        windows = result["timeline"]["windows"]
+        assert [(w["start_seconds"], w["end_seconds"]) for w in windows] == [(42, 72), (51, 81)]
+        assert sum(w["aggregation_weight_seconds"] for w in windows) == 39
+
+
+def test_short_explicit_range_pads_without_reading_past_requested_end():
+    audio = torch.ones(10 * 16000)
+    audio[4 * 16000:] = 9
+    model = _GenreModel()
+    result = _session(model).classify(audio, sample_rate=16000, mode="segment", start_seconds=2, end_seconds=4, window_seconds=5)
+    assert result["analysis"]["end_seconds"] == 4
+    assert model.calls[0][0, :2 * 16000].eq(1).all()
+    assert model.calls[0][0, 2 * 16000:].eq(0).all()
+
+
+@pytest.mark.parametrize("mode", ["segment", "time_curve"])
+def test_range_end_clips_at_eof_and_defaults_preserve_single_window(mode):
+    preview = preview_classification(sample_count=50 * 16000, mode=mode, start_seconds=20, end_seconds=90)
+    assert preview["analysis"]["end_seconds"] == 50
+    assert preview["analysis"]["analyzed_duration_seconds"] == 30
+    curve = preview_classification(sample_count=70 * 16000, mode="time_curve", start_seconds=20)
+    assert curve["analysis"]["analyzed_duration_seconds"] == 50
+    single = preview_classification(sample_count=70 * 16000, mode="segment", start_seconds=20)
+    assert single["analysis"]["end_seconds"] == 50
+    assert single["analysis"]["hop_seconds"] is None
+
+
+@pytest.mark.parametrize("options", [
+    {"end_seconds": True}, {"end_seconds": float("nan")}, {"end_seconds": float("inf")},
+    {"end_seconds": -1}, {"start_seconds": 1e308, "end_seconds": None},
+    {"start_seconds": 4, "end_seconds": 4},
+    {"start_seconds": 4, "end_seconds": 3}, {"start_seconds": 60, "end_seconds": 80},
+    {"start_seconds": 4, "end_seconds": 4.000001},
+    {"mode": "full_track", "end_seconds": 30},
+])
+def test_invalid_range_rejected_by_preview_and_inference(options):
+    kwargs = {"mode": "segment", **options}
+    with pytest.raises(ValueError):
+        preview_classification(sample_count=50 * 16000, **kwargs)
+    model = _GenreModel()
+    with pytest.raises(ValueError):
+        _session(model).classify(torch.zeros(50 * 16000), sample_rate=16000, **kwargs)
+    assert model.calls == []
+
+
+def test_large_finite_end_clips_before_sample_conversion():
+    preview = preview_classification(sample_count=16000, mode="segment", end_seconds=1e308)
+    assert preview["analysis"]["end_seconds"] == 1

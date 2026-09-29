@@ -69,7 +69,8 @@ def genre_metadata() -> dict[str, Any]:
         "parameters": {
             "window_seconds": {"default": 30, "minimum": 5, "maximum": 30},
             "hop_seconds": {"default": None, "minimum": 1, "maximum": "window_seconds"},
-            "start_seconds": {"default": None, "minimum": 0, "modes": ["segment"]},
+            "start_seconds": {"default": None, "minimum": 0, "modes": ["segment", "time_curve"]},
+            "end_seconds": {"default": None, "minimum": 0, "modes": ["segment", "time_curve"]},
             "top_n": {"default": 10, "minimum": 1, "maximum": 50},
             "curve_labels": {"default": None, "maximum_count": 50, "modes": ["time_curve"]},
             "batch_size": {"default": 1, "minimum": 1, "maximum": MAX_BATCH_SIZE},
@@ -86,6 +87,7 @@ def preview_classification(
     window_seconds: int = 30,
     hop_seconds: int | None = None,
     start_seconds: float | int | None = None,
+    end_seconds: float | int | None = None,
     top_n: int = 10,
     curve_labels: Sequence[str] | None = None,
     batch_size: int = 1,
@@ -98,6 +100,7 @@ def preview_classification(
         window_seconds=window_seconds,
         hop_seconds=hop_seconds,
         start_seconds=start_seconds,
+        end_seconds=end_seconds,
         top_n=top_n,
         curve_labels=curve_labels,
         batch_size=batch_size,
@@ -125,6 +128,7 @@ def classify_with_session(
     window_seconds: int = 30,
     hop_seconds: int | None = None,
     start_seconds: float | int | None = None,
+    end_seconds: float | int | None = None,
     top_n: int = 10,
     curve_labels: Sequence[str] | None = None,
     batch_size: int = 1,
@@ -141,6 +145,7 @@ def classify_with_session(
         window_seconds=window_seconds,
         hop_seconds=hop_seconds,
         start_seconds=start_seconds,
+        end_seconds=end_seconds,
         top_n=top_n,
         curve_labels=curve_labels,
         batch_size=batch_size,
@@ -212,23 +217,31 @@ def _validate_options(**kwargs: Any) -> dict[str, Any]:
     window_seconds = _bounded_int("window_seconds", kwargs["window_seconds"], 5, 30)
     top_n = _bounded_int("top_n", kwargs["top_n"], 1, 50)
     batch_size = _bounded_int("batch_size", kwargs["batch_size"], 1, MAX_BATCH_SIZE)
+    start_seconds = kwargs["start_seconds"]
+    end_seconds = kwargs["end_seconds"]
+    if mode == "full_track":
+        if start_seconds is not None or end_seconds is not None:
+            raise ValueError("start_seconds and end_seconds require segment or time_curve mode")
+        start_value = None
+        end_value = None
+    else:
+        start_value = (
+            _nonnegative_seconds("start_seconds", start_seconds)
+            if start_seconds is not None else (0.0 if mode == "segment" else None)
+        )
+        end_value = (
+            _nonnegative_seconds("end_seconds", end_seconds)
+            if end_seconds is not None else None
+        )
+        if end_value is not None and end_value <= (start_value or 0.0):
+            raise ValueError("end_seconds must be greater than start_seconds")
     hop_seconds = kwargs["hop_seconds"]
-    if mode == "segment":
+    if mode == "segment" and end_value is None:
         if hop_seconds is not None:
-            raise ValueError("hop_seconds is only valid for full_track and time_curve modes")
+            raise ValueError("hop_seconds requires end_seconds in segment mode")
         hop_value = None
     else:
         hop_value = window_seconds if hop_seconds is None else _bounded_int("hop_seconds", hop_seconds, 1, window_seconds)
-    start_seconds = kwargs["start_seconds"]
-    if mode == "segment":
-        if start_seconds is None:
-            start_value = 0.0
-        else:
-            start_value = _nonnegative_seconds("start_seconds", start_seconds)
-    elif start_seconds is not None:
-        raise ValueError("start_seconds is only valid for segment mode")
-    else:
-        start_value = None
     curve_labels = kwargs["curve_labels"]
     if curve_labels is not None:
         if mode != "time_curve":
@@ -239,6 +252,7 @@ def _validate_options(**kwargs: Any) -> dict[str, Any]:
         "window_seconds": window_seconds,
         "hop_seconds": hop_value,
         "start_seconds": start_value,
+        "end_seconds": end_value,
         "top_n": top_n,
         "curve_labels": curve_labels,
         "batch_size": batch_size,
@@ -253,6 +267,7 @@ def _plan_classification(
     window_seconds: int,
     hop_seconds: int | None,
     start_seconds: float | int | None,
+    end_seconds: float | int | None,
     top_n: int,
     curve_labels: Sequence[str] | None,
     batch_size: int,
@@ -263,6 +278,7 @@ def _plan_classification(
         window_seconds=window_seconds,
         hop_seconds=hop_seconds,
         start_seconds=start_seconds,
+        end_seconds=end_seconds,
         top_n=top_n,
         curve_labels=curve_labels,
         batch_size=batch_size,
@@ -294,6 +310,7 @@ def _plan_classification(
         window_seconds=options["window_seconds"],
         hop_seconds=options["hop_seconds"],
         start_seconds=options["start_seconds"],
+        end_seconds=options["end_seconds"],
     )
     weights = _coverage_weights(windows, target_sample_count)
     analysis = _analysis_payload(
@@ -365,35 +382,36 @@ def _build_windows(
     window_seconds: int,
     hop_seconds: int | None,
     start_seconds: float | None,
+    end_seconds: float | None = None,
 ) -> list[_Window]:
     window_samples = window_seconds * TARGET_SAMPLE_RATE
-    duration = sample_count / TARGET_SAMPLE_RATE
-    windows: list[_Window] = []
-    if mode == "segment":
-        start_sample = int(round((start_seconds or 0.0) * TARGET_SAMPLE_RATE))
-        if start_sample >= sample_count:
-            raise ValueError("start_seconds must be within the audio duration")
-        end_sample = start_sample + window_samples
-        windows.append(_make_window(0, start_sample, end_sample, sample_count, window_samples))
-        return windows
+    if (start_seconds or 0.0) >= sample_count / TARGET_SAMPLE_RATE:
+        raise ValueError("start_seconds must be within the audio duration")
+    start_sample = int(round((start_seconds or 0.0) * TARGET_SAMPLE_RATE))
+    if start_sample >= sample_count:
+        raise ValueError("start_seconds must be within the audio duration")
+    if mode == "segment" and end_seconds is None:
+        return [_make_window(0, start_sample, start_sample + window_samples, sample_count, window_samples)]
+
+    range_end = sample_count
+    if end_seconds is not None:
+        range_end = min(sample_count, int(round(min(end_seconds, sample_count / TARGET_SAMPLE_RATE) * TARGET_SAMPLE_RATE)))
+    if range_end <= start_sample:
+        raise ValueError("end_seconds must follow start_seconds by at least one audio sample")
+    if range_end - start_sample <= window_samples:
+        return [_make_window(0, start_sample, start_sample + window_samples, range_end, window_samples)]
 
     hop_samples = (hop_seconds or window_seconds) * TARGET_SAMPLE_RATE
-    if sample_count <= window_samples:
-        windows.append(_make_window(0, 0, window_samples, sample_count, window_samples))
-        return windows
-
-    starts = list(range(0, sample_count - window_samples + 1, hop_samples))
-    final_start = sample_count - window_samples
+    starts = list(range(start_sample, range_end - window_samples + 1, hop_samples))
+    final_start = range_end - window_samples
     if not starts or starts[-1] != final_start:
         starts.append(final_start)
     if len(starts) > MAX_WINDOWS:
         raise ValueError(f"analysis would create {len(starts)} windows; maximum is {MAX_WINDOWS}")
-    for index, start_sample in enumerate(starts):
-        end_sample = start_sample + window_samples
-        windows.append(_make_window(index, start_sample, end_sample, sample_count, window_samples))
-    if duration <= 0:
-        raise ValueError("audio must not be empty")
-    return windows
+    return [
+        _make_window(index, start, start + window_samples, range_end, window_samples)
+        for index, start in enumerate(starts)
+    ]
 
 
 def _make_window(index: int, start_sample: int, end_sample: int, sample_count: int, window_samples: int) -> _Window:
@@ -525,7 +543,7 @@ def _analysis_payload(
         "window_seconds": window_seconds,
         "hop_seconds": hop_seconds,
         "window_count": len(windows),
-        "tail_policy": "excerpt_truncated_padded" if mode == "segment" else "end_aligned",
+        "tail_policy": "excerpt_truncated_padded" if mode == "segment" and hop_seconds is None else "end_aligned",
         "aggregation": "coverage_weighted_mean_v1",
         "top_n": top_n,
     }

@@ -12,10 +12,14 @@ the public API and the model table.
 ## Experimental genre task API
 
 The additive `genre_metadata` / `preview_classification` /
-`MAESTSession.classify` / `classify_genre` surface is a local branch experiment
-for 519-label genre ranking. Modes are segment, full_track, time_curve; legacy
+`MAESTSession.classify` / `classify_genre` surface provides
+519-label genre ranking. Modes are segment, full_track, time_curve; legacy
 session defaults and raw inference remain unchanged. See README for the
-input/parameter contract. Metadata and preview must not construct a model,
+input/parameter contract. Segment and time_curve accept absolute start/end bounds;
+an explicit segment end enables multi-window aggregation. Keep default single-window
+segment behavior and absolute curve timestamps. Genre scores support taxonomy
+ranking; energy, mood, instruments and section boundaries require separate evidence.
+Metadata and preview must not construct a model,
 download weights, activate CUDA, or require a waveform. Task inference
 validates and resamples mono float waveforms, bounds device batches, preserves
 full label scores until aggregation, and reports dense selected-label curves in
@@ -46,8 +50,8 @@ that local harness is available. Findings record the exact environment and
 limits; successful execution does not certify genre accuracy.
 
 The public `openmirlab-skills/plugins/mir/CLAUDE.md` capability row was inspected:
-it already routes music classification to this package. New branch-only examples
-are deliberately not advertised in public skills until this API is released.
+it already routes music classification to this package. Its capability row must describe genre/subgenre ranking rather than mood or
+instrument detection.
 
 ## License status (read before wiring this into any hosted provider)
 

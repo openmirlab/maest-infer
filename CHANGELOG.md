@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Explicit `end_seconds` ranges for segment and time-curve classification, with
+  multi-window aggregation, absolute timestamps, EOF clipping and shared preview validation.
 - Experimental `MAESTSession.classify` and `classify_genre` for ranked 519-label
   Discogs genre analysis: segment, whole-track `full_track`, and dense `time_curve`
   modes; configurable windows/hops, bounded inference batches, explicit sample
