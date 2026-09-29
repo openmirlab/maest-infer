@@ -162,6 +162,81 @@ before model construction. `mps` is not supported -- Apple MLX/MPS backends
 are permanently out of scope for this org's projects (org canon
 openmirlab-dev 5e588e6, art. 4b).
 
+### Experimental genre analysis
+
+The additive task API returns ranked Discogs styles for an excerpt, a whole
+track, or a time curve. It currently requires
+`discogs-maest-30s-pw-129e-519l`; the legacy `MAESTSession` default remains
+unchanged. Existing `get_maest`, `infer`, and `predict_labels` behavior is preserved.
+This branch API has not been released or certified for hosted service use.
+
+```python
+import numpy as np
+from maest_infer import MAESTSession
+
+# Replace with decoded mono floating-point audio and its actual sample rate.
+audio = np.zeros(16000 * 60, dtype=np.float32)
+with MAESTSession(arch="discogs-maest-30s-pw-129e-519l", device="cpu") as session:
+    summary = session.classify(audio, sample_rate=16000)
+    opening = session.classify(audio, sample_rate=16000, mode="excerpt")
+    later = session.classify(
+        audio, sample_rate=16000, mode="excerpt", start_seconds=30,
+    )
+    curve = session.classify(
+        audio, sample_rate=16000, mode="timeline", hop_seconds=5,
+        curve_labels=["Electronic---House"],
+    )
+    print(summary["rankings"])
+```
+
+The silence above demonstrates the input contract, not a meaningful genre
+example. Decode real music in the caller; this API accepts only mono floating
+NumPy arrays or torch tensors, with an explicit positive integer sample rate.
+It resamples to 16 kHz, checks finite samples, and does not silently downmix
+stereo or normalize integer PCM. File paths are not accepted.
+`classify_genre(audio, sample_rate=..., device="cpu", ...)` is the one-shot
+alternative: it creates and closes a fresh session each call. Reuse an explicit
+session for multiple requests; it is not safe for concurrent classify/release calls.
+
+| Parameter | Contract |
+|---|---|
+| `mode` | `aggregate` (default), `excerpt`, or `timeline` |
+| `window_seconds` | Integer 5–30, default 30; shorter contexts may alter predictions |
+| `hop_seconds` | Integer 1–window, default window; forbidden for excerpt |
+| `start_seconds` | Excerpt only, default 0; finite nonnegative time inside the audio |
+| `top_n` | Integer 1–50, default 10; number of ranked candidates |
+| `curve_labels` | Timeline only, unique exact labels, up to 50; omit for automatic selection |
+| `batch_size` | Runtime tuning for bounded inference batches; default 1, range 1–32 |
+
+Aggregate and timeline cover the whole input. A final full window is aligned to
+its end when needed, so the last step may be shorter than hop. Only inputs or
+excerpts shorter than the requested window are right-padded; excerpt start is
+never shifted backward. Padding contributes no aggregation weight.
+A request is rejected if its planned window count exceeds 4096. Hosted input
+limits and artifact delivery are the calling service's responsibility.
+
+All modes return JSON-compatible `rankings`, ordered by descending `score`,
+then ascending `label_id` on exact ties, with consecutive one-based `rank`.
+Scores are sigmoid activations, not calibrated probabilities or a distribution
+summing to one. Each row also includes `genre` and `subgenre`; parent genre
+scores are not synthesized by summing children. Aggregation uses all 519 label
+scores before selecting Top-N. Each instant averages its covering windows, then
+the track averages those values over real duration (`coverage_weighted_mean_v1`).
+`analysis` records resolved settings, coverage, and window count.
+
+Timeline additionally returns time-ordered `windows` and dense `series`, with
+one score per window for every selected label. Automatic selection considers
+the union of each window's Top-N and picks up to Top-N labels by peak score;
+explicit `curve_labels` preserves the requested order. Global rankings still
+use time-weighted mean, not peaks. Curves describe window-sized contexts;
+a 5-second hop does not imply precise 5-second genre-change localization.
+No interpolation, smoothing, silence removal, or partial-success fallback is applied.
+
+The existing ready-only lifecycle also applies to `classify`: load first;
+release permits reload; close is terminal. Numerical and runtime probe evidence
+is recorded under `docs/blueprints/`; classification accuracy is not established
+by successful execution alone.
+
 ## Available Models
 
 | Model | Input Length | Labels | Description |

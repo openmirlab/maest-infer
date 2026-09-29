@@ -1,4 +1,11 @@
-"""Explicit lifecycle facade for MAEST inference and checkpoint cache status."""
+"""Explicit lifecycle facade for MAEST inference and checkpoint cache status.
+
+Keeps model construction, readiness, release, and cache inspection in one thin
+object while task-level postprocessing lives in focused modules. The genre task
+API is additive here so the legacy raw infer path keeps its original behavior.
+
+Reads: maest_infer.checkpoints, maest_infer.loading; read by: package users
+"""
 from pathlib import Path
 
 from .checkpoints import checkpoint_artifact, torch_hub_checkpoint_path
@@ -91,6 +98,25 @@ class MAESTSession:
             raise RuntimeError("MAESTSession must be ready; call load() before infer()")
         return self._model(audio, **kwargs)
 
+    def classify(self, audio, *, sample_rate, mode="aggregate", window_seconds=30,
+                 hop_seconds=None, start_seconds=None, top_n=10,
+                 curve_labels=None, batch_size=1):
+        """Classify a mono waveform with the experimental 519-label genre API."""
+        from .genre import classify_with_session
+
+        return classify_with_session(
+            self,
+            audio,
+            sample_rate=sample_rate,
+            mode=mode,
+            window_seconds=window_seconds,
+            hop_seconds=hop_seconds,
+            start_seconds=start_seconds,
+            top_n=top_n,
+            curve_labels=curve_labels,
+            batch_size=batch_size,
+        )
+
     def release(self):
         if self._status == "closed":
             return self
@@ -136,4 +162,11 @@ def get_maest_session(**kwargs):
     return session
 
 
-__all__ = ["MAESTSession", "get_maest_session"]
+def classify_genre(audio, *, sample_rate, **kwargs):
+    """One-shot genre classification using the 519-label MAEST checkpoint."""
+    from .genre import classify_genre as _classify_genre
+
+    return _classify_genre(audio, sample_rate=sample_rate, **kwargs)
+
+
+__all__ = ["MAESTSession", "get_maest_session", "classify_genre"]

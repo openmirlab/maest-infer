@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Experimental `MAESTSession.classify` and `classify_genre` for ranked 519-label
+  Discogs genre analysis: excerpt, whole-track aggregate, and dense timeline
+  modes; configurable windows/hops, bounded inference batches, explicit sample
+  rates, coverage-corrected aggregation, and stable Top-N ordering. Existing
+  raw inference APIs and session defaults are unchanged.
+
 ### Docs
 - Document the AGPL-3.0-only license constraint precisely, including what
   §13 ("Remote Network Interaction") implies for running this package
