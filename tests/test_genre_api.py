@@ -415,3 +415,10 @@ def test_window_count_guard_and_batch_bound_are_explicit():
         batch_size=2,
     )
     assert [call.shape[0] for call in model.calls] == [2, 1]
+
+
+def test_dense_preview_reports_exact_analyzed_duration():
+    from maest_infer import preview_classification
+    result = preview_classification(sample_count=600 * 16000, mode="time_curve", hop_seconds=1)
+    assert result["analysis"]["window_count"] == 571
+    assert result["analysis"]["analyzed_duration_seconds"] == 600.0

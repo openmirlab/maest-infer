@@ -299,7 +299,6 @@ def _plan_classification(
     analysis = _analysis_payload(
         target_sample_count,
         windows,
-        weights,
         mode=options["mode"],
         window_seconds=options["window_seconds"],
         hop_seconds=options["hop_seconds"],
@@ -504,7 +503,6 @@ def _split_label(label: str) -> tuple[str, str]:
 def _analysis_payload(
     sample_count: int,
     windows: Sequence[_Window],
-    weights: torch.Tensor,
     *,
     mode: str,
     window_seconds: int,
@@ -518,7 +516,12 @@ def _analysis_payload(
         "duration_seconds": duration,
         "start_seconds": start,
         "end_seconds": end,
-        "analyzed_duration_seconds": float(weights.sum()),
+        # Windows cover a contiguous interval (hop <= window). Count real samples
+        # instead of summing fractional overlap weights, which can exceed duration
+        # by a floating-point epsilon on dense curves.
+        "analyzed_duration_seconds": (
+            max(window.real_end_sample for window in windows) - windows[0].real_start_sample
+        ) / TARGET_SAMPLE_RATE,
         "window_seconds": window_seconds,
         "hop_seconds": hop_seconds,
         "window_count": len(windows),
