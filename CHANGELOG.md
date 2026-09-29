@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and concrete device.
 
 ### Changed
+- Report analyzed duration from exact sample coverage so densely overlapping windows
+  cannot exceed the input duration through floating-point roundoff.
 - Rename the unreleased genre mode values from `excerpt` / `aggregate` /
   `timeline` to `segment` / `full_track` / `time_curve`. Old aliases are rejected;
   `time_curve` keeps returning its dense curve data under the `timeline` result key.
