@@ -189,3 +189,7 @@ uv run python tools/check_weights_liveness.py          # HEAD every checkpoint U
   `embed=` to `fix_embedding_layer`, so it always takes the `"default"`
   branch -- carried over verbatim rather than fixed, since this campaign is
   scoped to structure, not behavior changes.
+
+## Distribution policy (2026-10-05)
+
+Install the current source from `https://github.com/openmirlab/maest-infer`. GitHub release workflows verify and build distributions but do not upload to PyPI. Existing PyPI versions, where any exist, are historical snapshots. Update installation examples to use Git when changing this package.

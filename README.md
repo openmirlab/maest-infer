@@ -1,6 +1,8 @@
 # maest-infer
 
-[![PyPI](https://img.shields.io/pypi/v/maest-infer)](https://pypi.org/project/maest-infer/)
+> **Current installation:** `pip install "maest-infer @ git+https://github.com/openmirlab/maest-infer.git"`
+> OpenMIRLab no longer publishes new versions to PyPI. Any existing PyPI releases are historical snapshots.
+
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](LICENSE)
 
@@ -108,11 +110,11 @@ wherever it runs, including inside a hosted API/provider.
 ## Install
 
 ```bash
-# From PyPI
-pip install maest-infer
+# From GitHub
+pip install "maest-infer @ git+https://github.com/openmirlab/maest-infer.git"
 
 # Or with uv
-uv pip install maest-infer
+uv pip install "maest-infer @ git+https://github.com/openmirlab/maest-infer.git"
 ```
 
 For development:
